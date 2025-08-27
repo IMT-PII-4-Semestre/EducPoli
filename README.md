@@ -18,3 +18,11 @@ Buscamos aplicar os conhecimentos adquiridos em sala de aula para criar soluçõ
 
 
 ## Colaboração
+
+
+---
+<p align="center">
+  <img src="https://raw.githubusercontent.com/IMT-PII-3-Semestre/chatbot-poliedro/main/images/logo-IMT.png" width="150" alt="Logo IMT">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/IMT-PII-3-Semestre/chatbot-poliedro/main/images/logo-poliedro-se.png" width="150" alt="Logo Poliedro SE">
+</p>
