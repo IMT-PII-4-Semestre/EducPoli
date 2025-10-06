@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1052981911635",
+    "project_id": "educpoli",
+    "storage_bucket": "educpoli.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052981911635:android:db00b5001fd1ceebd926a6",
+        "android_client_info": {
+          "package_name": "com.exemplo.educ_poli"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOA3n9FjuW4BJYvnoI9t5nTjTeRcM5FcI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
