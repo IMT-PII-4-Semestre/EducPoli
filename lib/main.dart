@@ -1,4 +1,8 @@
 import 'package:educ_poli/pages/aluno/materias_alunos.dart';
+import 'package:educ_poli/pages/diretor/cadastrar_alunos.dart';
+import 'package:educ_poli/pages/diretor/cadastrar_professores.dart';
+import 'package:educ_poli/pages/diretor/gerenciar_alunos.dart';
+import 'package:educ_poli/pages/diretor/gerenciar_professor.dart';
 import 'package:educ_poli/pages/professor/adicionar_alunos.dart';
 import 'package:educ_poli/pages/professor/mensagens_professor.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +57,12 @@ class MeuApp extends StatelessWidget {
         '/professor/materias': (context) => const MateriasProfessor(),
         '/professor/mensagem': (context) => const MensagemProfessor(),
         '/professor/notas': (context) => const NotasProfessor(),
+
+        // Rotas do Diretor
+        '/diretor/alunos': (context) => const AlunosDiretor(),
+        '/diretor/professores': (context) => const ProfessoresDiretor(),
+        '/diretor/cadastrar-aluno': (context) => const CadastrarAluno(),
+        '/diretor/cadastrar-professor': (context) => const CadastrarProfessor(),
       },
     );
   }
