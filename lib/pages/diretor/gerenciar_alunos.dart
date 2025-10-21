@@ -1,54 +1,146 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/turma_service.dart';
+import '../../models/turma.dart';
 
-class AlunosDiretor extends StatelessWidget {
+class AlunosDiretor extends StatefulWidget {
   const AlunosDiretor({super.key});
+
+  @override
+  State<AlunosDiretor> createState() => _AlunosDiretorState();
+}
+
+class _AlunosDiretorState extends State<AlunosDiretor> {
+  final TextEditingController _buscaController = TextEditingController();
+  final TurmaService _turmaService = TurmaService();
+  String _statusFiltro = 'Sem filtro';
+  String _turmaFiltro = 'Selecione';
+  String _termoBusca = '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('Gerenciar Alunos'),
         backgroundColor: const Color(0xFFE74C3C),
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, '/diretor/cadastrar-aluno'),
-            icon: const Icon(Icons.add),
-            tooltip: 'Cadastrar Novo Aluno',
-          ),
-        ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header com botão de cadastro
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Lista de Alunos',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  'Usuários cadastrados',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, '/diretor/cadastrar-aluno'),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
-                    'Novo Aluno',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE74C3C),
-                  ),
+                SizedBox(height: 4),
+                Text(
+                  'Relação de usuários cadastrados',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
           ),
 
-          // Lista de alunos
+          // Filtros
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _buscaController,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por nome, e-mail ou RA',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      fillColor: Colors.white,
+                      filled: true,
+                    ),
+                    onChanged: (value) =>
+                        setState(() => _termoBusca = value.toLowerCase()),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _statusFiltro,
+                    decoration: InputDecoration(
+                      labelText: 'Status',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      fillColor: Colors.white,
+                      filled: true,
+                    ),
+                    items: ['Sem filtro', 'Ativo', 'Inativo']
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _statusFiltro = v!),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: StreamBuilder<List<Turma>>(
+                    stream: _turmaService.buscarTurmasAtivas(),
+                    builder: (context, snapshot) {
+                      List<String> turmas = ['Selecione'];
+                      if (snapshot.hasData) {
+                        turmas.addAll(
+                          snapshot.data!.map((t) => t.nome).toList(),
+                        );
+                      }
+                      return DropdownButtonFormField<String>(
+                        value: _turmaFiltro,
+                        decoration: InputDecoration(
+                          labelText: 'Turma',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          fillColor: Colors.white,
+                          filled: true,
+                        ),
+                        items: turmas
+                            .map(
+                              (t) => DropdownMenuItem(value: t, child: Text(t)),
+                            )
+                            .toList(),
+                        onChanged: (v) => setState(() => _turmaFiltro = v!),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/diretor/cadastrar-aluno'),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    'Novo usuário',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE74C3C),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Tabela
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -57,78 +149,217 @@ class AlunosDiretor extends StatelessWidget {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Center(child: Text('Erro ao carregar alunos'));
+                  return const Center(child: Text('Erro ao carregar'));
                 }
-
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final alunos = snapshot.data?.docs ?? [];
+                var alunos = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final nome = (data['nome'] ?? '').toString().toLowerCase();
+                  final email = (data['email'] ?? '').toString().toLowerCase();
+                  final ra = (data['ra'] ?? '').toString().toLowerCase();
+                  final ativo = data['ativo'] ?? true;
+                  final turma = data['turma'] ?? '';
+
+                  if (_termoBusca.isNotEmpty &&
+                      !nome.contains(_termoBusca) &&
+                      !email.contains(_termoBusca) &&
+                      !ra.contains(_termoBusca))
+                    return false;
+
+                  if (_statusFiltro == 'Ativo' && !ativo) return false;
+                  if (_statusFiltro == 'Inativo' && ativo) return false;
+
+                  if (_turmaFiltro != 'Selecione' && turma != _turmaFiltro) {
+                    return false;
+                  }
+
+                  return true;
+                }).toList();
 
                 if (alunos.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.person, size: 100, color: Colors.grey),
-                        Text(
-                          'Nenhum aluno encontrado',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                        Text('Clique no + para adicionar'),
-                      ],
-                    ),
-                  );
+                  return const Center(child: Text('Nenhum aluno encontrado'));
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: alunos.length,
-                  itemBuilder: (context, index) {
-                    final aluno = alunos[index].data() as Map<String, dynamic>;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFE74C3C),
-                          child: Text(
-                            aluno['nome']?.substring(0, 1).toUpperCase() ?? 'A',
-                            style: const TextStyle(color: Colors.white),
+                return Container(
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      // Header
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
-                        title: Text(aluno['nome'] ?? 'Sem nome'),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: const Row(
                           children: [
-                            Text('Email: ${aluno['email'] ?? 'Sem email'}'),
-                            Text('RA: ${aluno['ra'] ?? 'Sem RA'}'),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Nome',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'E-mail',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'RA',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Turma',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Status',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            SizedBox(width: 50),
                           ],
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      ),
+
+                      // Lista
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: alunos.length,
+                          itemBuilder: (context, index) {
+                            final aluno =
+                                alunos[index].data() as Map<String, dynamic>;
+                            final id = alunos[index].id;
+                            final ativo = aluno['ativo'] ?? true;
+
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(aluno['nome'] ?? '-'),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(aluno['email'] ?? '-'),
+                                  ),
+                                  Expanded(child: Text(aluno['ra'] ?? '-')),
+                                  Expanded(child: Text(aluno['turma'] ?? '-')),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: ativo
+                                                ? Colors.green
+                                                : Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(ativo ? 'ativo' : 'inativo'),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 50,
+                                    child: PopupMenuButton(
+                                      icon: const Icon(Icons.more_vert),
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(
+                                          value: 'editar',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit, size: 20),
+                                              SizedBox(width: 8),
+                                              Text('Editar'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuItem(
+                                          value: 'excluir',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete,
+                                                size: 20,
+                                                color: Colors.red,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Excluir',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      onSelected: (value) {
+                                        if (value == 'editar') {
+                                          _mostrarDialogEditar(id, aluno);
+                                        } else {
+                                          _excluirAluno(id, aluno['nome']);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      // Paginação
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(
-                              onPressed: () => _editarAluno(
-                                context,
-                                alunos[index].id,
-                                aluno,
-                              ),
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                            ),
-                            IconButton(
-                              onPressed: () => _excluirAluno(
-                                context,
-                                alunos[index].id,
-                                aluno['nome'],
-                              ),
-                              icon: const Icon(Icons.delete, color: Colors.red),
+                            Text('Total: ${alunos.length} itens'),
+                            const Row(
+                              children: [
+                                Text('1'),
+                                SizedBox(width: 16),
+                                Text('10 / página'),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 );
               },
             ),
@@ -138,69 +369,107 @@ class AlunosDiretor extends StatelessWidget {
     );
   }
 
-  void _editarAluno(
-    BuildContext context,
-    String id,
-    Map<String, dynamic> aluno,
-  ) {
-    final nomeController = TextEditingController(text: aluno['nome']);
-    final emailController = TextEditingController(text: aluno['email']);
-    final raController = TextEditingController(text: aluno['ra']);
+  void _mostrarDialogEditar(String id, Map<String, dynamic> aluno) {
+    final nomeCtrl = TextEditingController(text: aluno['nome']);
+    final raCtrl = TextEditingController(text: aluno['ra']);
+    final emailCtrl = TextEditingController(text: aluno['email']);
+    String turma = aluno['turma'] ?? 'Selecione';
+    bool ativo = aluno['ativo'] ?? true;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Editar Aluno'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nomeController,
-              decoration: const InputDecoration(labelText: 'Nome'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Editar Aluno'),
+          content: SizedBox(
+            width: 500,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nomeCtrl,
+                  decoration: const InputDecoration(labelText: 'Nome'),
+                ),
+                TextField(
+                  controller: raCtrl,
+                  decoration: const InputDecoration(labelText: 'RA'),
+                ),
+                TextField(
+                  controller: emailCtrl,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                const SizedBox(height: 16),
+                StreamBuilder<List<Turma>>(
+                  stream: _turmaService.buscarTurmasAtivas(),
+                  builder: (context, snapshot) {
+                    List<String> turmas = ['Selecione'];
+                    if (snapshot.hasData) {
+                      turmas.addAll(snapshot.data!.map((t) => t.nome));
+                    }
+                    return DropdownButtonFormField<String>(
+                      value: turma,
+                      decoration: const InputDecoration(labelText: 'Turma'),
+                      items: turmas
+                          .map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          )
+                          .toList(),
+                      onChanged: (v) => setStateDialog(() => turma = v!),
+                    );
+                  },
+                ),
+                Row(
+                  children: [
+                    const Text('Status:'),
+                    Switch(
+                      value: ativo,
+                      onChanged: (v) => setStateDialog(() => ativo = v),
+                    ),
+                    Text(ativo ? 'Ativo' : 'Inativo'),
+                  ],
+                ),
+              ],
             ),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
             ),
-            TextField(
-              controller: raController,
-              decoration: const InputDecoration(labelText: 'RA'),
+            ElevatedButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('usuarios')
+                    .doc(id)
+                    .update({
+                      'nome': nomeCtrl.text,
+                      'ra': raCtrl.text,
+                      'email': emailCtrl.text,
+                      'turma': turma == 'Selecione' ? null : turma,
+                      'ativo': ativo,
+                    });
+                if (context.mounted) Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE74C3C),
+              ),
+              child: const Text(
+                'Salvar',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('usuarios')
-                  .doc(id)
-                  .update({
-                    'nome': nomeController.text.trim(),
-                    'email': emailController.text.trim(),
-                    'ra': raController.text.trim(),
-                  });
-              if (context.mounted) Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE74C3C),
-            ),
-            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
 
-  void _excluirAluno(BuildContext context, String id, String nome) {
+  void _excluirAluno(String id, String nome) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Excluir Aluno'),
-        content: Text('Tem certeza que deseja excluir o aluno "$nome"?'),
+        content: Text('Deseja excluir "$nome"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -220,5 +489,11 @@ class AlunosDiretor extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _buscaController.dispose();
+    super.dispose();
   }
 }

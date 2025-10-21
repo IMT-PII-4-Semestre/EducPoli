@@ -82,40 +82,30 @@ class DashboardDiretor extends StatelessWidget {
                 Expanded(
                   child: Container(
                     color: Colors.grey[100],
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 60),
-
-                        // Cards principais
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildMainCard(
-                                  context,
-                                  'alunos',
-                                  Icons.person,
-                                  Colors.grey[300]!,
-                                  '/diretor/alunos',
-                                ),
-                                const SizedBox(width: 40),
-                                _buildMainCard(
-                                  context,
-                                  'professores',
-                                  Icons.person_3,
-                                  Colors.grey[300]!,
-                                  '/diretor/professores',
-                                ),
-                              ],
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildMainCard(
+                              context,
+                              'alunos',
+                              Icons.person,
+                              Colors.grey[300]!,
+                              '/diretor/alunos',
                             ),
-                          ),
+                            const SizedBox(width: 40),
+                            _buildMainCard(
+                              context,
+                              'professores',
+                              Icons.person_3,
+                              Colors.grey[300]!,
+                              '/diretor/professores',
+                            ),
+                          ],
                         ),
-
-                        // Figura 3D isométrica CORRIGIDA
-                        _buildIsometricCube(),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -123,19 +113,6 @@ class DashboardDiretor extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildIsometricCube() {
-    return Container(
-      height: 200,
-      child: Center(
-        child: SizedBox(
-          width: 200,
-          height: 200,
-          child: CustomPaint(painter: IsometricCubePainter()),
-        ),
       ),
     );
   }
@@ -207,58 +184,4 @@ class DashboardDiretor extends StatelessWidget {
       ),
     );
   }
-}
-
-// Custom Painter para criar o cubo isométrico correto
-class IsometricCubePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-
-    // Dimensões do cubo
-    final double cubeSize = 60;
-    final double centerX = size.width / 2;
-    final double centerY = size.height / 2;
-
-    // Face superior (azul claro)
-    paint.color = const Color(0xFF7DD3FC);
-    final topPath = Path();
-    topPath.moveTo(centerX - cubeSize, centerY - cubeSize / 2);
-    topPath.lineTo(centerX, centerY - cubeSize);
-    topPath.lineTo(centerX + cubeSize, centerY - cubeSize / 2);
-    topPath.lineTo(centerX, centerY);
-    topPath.close();
-    canvas.drawPath(topPath, paint);
-
-    // Face direita (rosa)
-    paint.color = const Color(0xFFFF9EC7);
-    final rightPath = Path();
-    rightPath.moveTo(centerX, centerY);
-    rightPath.lineTo(centerX + cubeSize, centerY - cubeSize / 2);
-    rightPath.lineTo(centerX + cubeSize, centerY + cubeSize / 2);
-    rightPath.lineTo(centerX, centerY + cubeSize);
-    rightPath.close();
-    canvas.drawPath(rightPath, paint);
-
-    // Face esquerda (laranja)
-    paint.color = const Color(0xFFFFB366);
-    final leftPath = Path();
-    leftPath.moveTo(centerX - cubeSize, centerY - cubeSize / 2);
-    leftPath.lineTo(centerX, centerY);
-    leftPath.lineTo(centerX, centerY + cubeSize);
-    leftPath.lineTo(centerX - cubeSize, centerY + cubeSize / 2);
-    leftPath.close();
-    canvas.drawPath(leftPath, paint);
-
-    // Linhas de contorno (opcional)
-    paint.color = Colors.black26;
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 1;
-    canvas.drawPath(topPath, paint);
-    canvas.drawPath(rightPath, paint);
-    canvas.drawPath(leftPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
