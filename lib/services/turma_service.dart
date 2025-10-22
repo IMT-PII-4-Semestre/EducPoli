@@ -6,15 +6,21 @@ class TurmaService {
 
   // Buscar todas as turmas ativas
   Stream<List<Turma>> buscarTurmasAtivas() {
+    print('🔍 Buscando turmas ativas...');
     return _firestore
         .collection('turmas')
         .where('ativa', isEqualTo: true)
-        .orderBy('nome')
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => Turma.fromMap(doc.data(), doc.id))
-              .toList();
+          print('📚 Documentos encontrados: ${snapshot.docs.length}');
+
+          final turmas = snapshot.docs.map((doc) {
+            print('  📄 Documento ID: ${doc.id}');
+            print('  📄 Dados: ${doc.data()}');
+            return Turma.fromMap(doc.data(), doc.id);
+          }).toList();
+
+          return turmas;
         });
   }
 

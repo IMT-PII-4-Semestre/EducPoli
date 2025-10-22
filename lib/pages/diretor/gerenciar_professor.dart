@@ -17,51 +17,91 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Gerenciar Professores'),
-        backgroundColor: const Color(0xFFE74C3C),
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          // PAGE HEADER
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(40, 24, 40, 32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Professores cadastrados',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                // Breadcrumb
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: const Text(
+                        'Home',
+                        style: TextStyle(color: Colors.blue, fontSize: 14),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('/', style: TextStyle(color: Colors.grey)),
+                    ),
+                    const Text(
+                      'Professores cadastrados',
+                      style: TextStyle(color: Colors.black87, fontSize: 14),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 16),
+                // Título
+                const Text(
+                  'Professores cadastrados',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
                   'Relação de professores cadastrados',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
                 ),
               ],
             ),
           ),
 
-          // Filtros
+          const SizedBox(height: 32),
+
+          // FILTROS
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 40.0),
             child: Row(
               children: [
-                // Campo de busca
+                // Busca
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: TextField(
                     controller: _buscaController,
                     decoration: InputDecoration(
-                      hintText: 'Buscar por nome, e-mail ou CPF',
-                      prefixIcon: const Icon(Icons.search),
+                      hintText: 'Buscar por nome',
+                      hintStyle: const TextStyle(fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, size: 20),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                       fillColor: Colors.white,
                       filled: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onChanged: (value) =>
                         setState(() => _termoBusca = value.toLowerCase()),
@@ -69,17 +109,28 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                 ),
                 const SizedBox(width: 16),
 
-                // Filtro de Status
+                // Status
                 Expanded(
+                  flex: 2,
                   child: DropdownButtonFormField<String>(
                     value: _statusFiltro,
                     decoration: InputDecoration(
                       labelText: 'Status',
+                      labelStyle: const TextStyle(fontSize: 14),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
                       fillColor: Colors.white,
                       filled: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     items: ['Sem filtro', 'Ativo', 'Inativo']
                         .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -89,8 +140,9 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                 ),
                 const SizedBox(width: 16),
 
-                // Filtro de Disciplina
+                // Disciplina
                 Expanded(
+                  flex: 2,
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('usuarios')
@@ -112,12 +164,22 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                       return DropdownButtonFormField<String>(
                         value: _disciplinaFiltro,
                         decoration: InputDecoration(
-                          labelText: 'Disciplina',
+                          labelText: 'Perfil/Atribuição',
+                          labelStyle: const TextStyle(fontSize: 14),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
                           fillColor: Colors.white,
                           filled: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                         ),
                         items: disciplinas
                             .toList()
@@ -133,274 +195,385 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                 ),
                 const SizedBox(width: 16),
 
-                // Botão Novo Professor
+                // Botão Novo
                 ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(
                     context,
                     '/diretor/cadastrar-professor',
                   ),
-                  icon: const Icon(Icons.add, color: Colors.white),
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
                   label: const Text(
                     'Novo professor',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE74C3C),
+                    backgroundColor: const Color(0xFFFFF5F5),
+                    foregroundColor: const Color(0xFFE74C3C),
+                    elevation: 0,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(
+                        color: Color(0xFFFFCDD2),
+                        width: 1,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
 
-          // Tabela
+          const SizedBox(height: 24),
+
+          // TABELA
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('usuarios')
-                  .where('tipo', isEqualTo: 'professor')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text('Erro ao carregar'));
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                var professores = snapshot.data!.docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final nome = (data['nome'] ?? '').toString().toLowerCase();
-                  final email = (data['email'] ?? '').toString().toLowerCase();
-                  final cpf = (data['cpf'] ?? '').toString().toLowerCase();
-                  final ativo = data['ativo'] ?? true;
-                  final disciplina = data['disciplina'] ?? '';
-
-                  if (_termoBusca.isNotEmpty &&
-                      !nome.contains(_termoBusca) &&
-                      !email.contains(_termoBusca) &&
-                      !cpf.contains(_termoBusca))
-                    return false;
-
-                  if (_statusFiltro == 'Ativo' && !ativo) return false;
-                  if (_statusFiltro == 'Inativo' && ativo) return false;
-
-                  if (_disciplinaFiltro != 'Selecione' &&
-                      disciplina != _disciplinaFiltro) {
-                    return false;
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40.0),
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('usuarios')
+                    .where('tipo', isEqualTo: 'professor')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Erro ao carregar: ${snapshot.error}'),
+                    );
+                  }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
                   }
 
-                  return true;
-                }).toList();
+                  var professores = snapshot.data!.docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final nome = (data['nome'] ?? '').toString().toLowerCase();
+                    final email = (data['email'] ?? '')
+                        .toString()
+                        .toLowerCase();
+                    final cpf = (data['cpf'] ?? '').toString().toLowerCase();
+                    final ativo = data['ativo'] ?? true;
+                    final disciplina = data['disciplina'] ?? '';
 
-                if (professores.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.person, size: 100, color: Colors.grey),
-                        Text(
-                          'Nenhum professor encontrado',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ],
+                    if (_termoBusca.isNotEmpty &&
+                        !nome.contains(_termoBusca) &&
+                        !email.contains(_termoBusca) &&
+                        !cpf.contains(_termoBusca))
+                      return false;
+
+                    if (_statusFiltro == 'Ativo' && !ativo) return false;
+                    if (_statusFiltro == 'Inativo' && ativo) return false;
+
+                    if (_disciplinaFiltro != 'Selecione' &&
+                        disciplina != _disciplinaFiltro) {
+                      return false;
+                    }
+
+                    return true;
+                  }).toList();
+
+                  if (professores.isEmpty) {
+                    return const Center(
+                      child: Text('Nenhum professor encontrado'),
+                    );
+                  }
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!),
                     ),
-                  );
-                }
-
-                return Container(
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      // Header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: Colors.grey[300]!),
+                    child: Column(
+                      children: [
+                        // Header da tabela
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
                           ),
-                        ),
-                        child: const Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Nome',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(8),
+                              topRight: Radius.circular(8),
                             ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'E-mail',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'CPF',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'Disciplina',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                'Status',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            SizedBox(width: 50),
-                          ],
-                        ),
-                      ),
-
-                      // Lista
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: professores.length,
-                          itemBuilder: (context, index) {
-                            final professor =
-                                professores[index].data()
-                                    as Map<String, dynamic>;
-                            final id = professores[index].id;
-                            final ativo = professor['ativo'] ?? true;
-
-                            return Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(color: Colors.grey[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Nome',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
+                                  ),
                                 ),
                               ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(professor['nome'] ?? '-'),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'E-mail',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
                                   ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(professor['email'] ?? '-'),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'CPF',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
                                   ),
-                                  Expanded(
-                                    child: Text(professor['cpf'] ?? '-'),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'Perfil/Atribuição',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
                                   ),
-                                  Expanded(
-                                    child: Text(professor['disciplina'] ?? '-'),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  'Status',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Colors.grey[700],
                                   ),
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: ativo
-                                                ? Colors.green
-                                                : Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(ativo ? 'ativo' : 'inativo'),
-                                      ],
+                                ),
+                              ),
+                              const SizedBox(width: 50),
+                            ],
+                          ),
+                        ),
+
+                        // Lista de professores
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: professores.length,
+                            separatorBuilder: (_, __) =>
+                                Divider(height: 1, color: Colors.grey[200]),
+                            itemBuilder: (context, index) {
+                              final professor =
+                                  professores[index].data()
+                                      as Map<String, dynamic>;
+                              final id = professores[index].id;
+                              final ativo = professor['ativo'] ?? true;
+
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        professor['nome'] ?? '-',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(
-                                    width: 50,
-                                    child: PopupMenuButton(
-                                      icon: const Icon(Icons.more_vert),
-                                      itemBuilder: (context) => [
-                                        const PopupMenuItem(
-                                          value: 'editar',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit, size: 20),
-                                              SizedBox(width: 8),
-                                              Text('Editar'),
-                                            ],
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        professor['email'] ?? '-',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        professor['cpf'] ?? '-',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFFF5F5),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(0xFFFFCDD2),
+                                            width: 1,
                                           ),
                                         ),
-                                        const PopupMenuItem(
-                                          value: 'excluir',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.delete,
-                                                size: 20,
-                                                color: Colors.red,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Excluir',
-                                                style: TextStyle(
+                                        child: Text(
+                                          professor['disciplina'] ??
+                                              'Sem disciplina',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFFE74C3C),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: ativo
+                                                  ? Colors.green
+                                                  : Colors.grey,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            ativo ? 'ativo' : 'inativo',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 50,
+                                      child: PopupMenuButton(
+                                        icon: Icon(
+                                          Icons.more_vert,
+                                          color: Colors.grey[600],
+                                        ),
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'editar',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.edit, size: 18),
+                                                SizedBox(width: 8),
+                                                Text('Editar'),
+                                              ],
+                                            ),
+                                          ),
+                                          const PopupMenuItem(
+                                            value: 'excluir',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.delete,
+                                                  size: 18,
                                                   color: Colors.red,
                                                 ),
-                                              ),
-                                            ],
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  'Excluir',
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                      onSelected: (value) {
-                                        if (value == 'editar') {
-                                          _mostrarDialogEditar(id, professor);
-                                        } else {
-                                          _excluirProfessor(
-                                            id,
-                                            professor['nome'],
-                                          );
-                                        }
-                                      },
+                                        ],
+                                        onSelected: (value) {
+                                          if (value == 'editar') {
+                                            _mostrarDialogEditar(id, professor);
+                                          } else {
+                                            _excluirProfessor(
+                                              id,
+                                              professor['nome'],
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        // Footer paginação
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Colors.grey[200]!),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Total: ${professores.length} itens',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE74C3C),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      '1',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    '10 / página',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      // Paginação
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(color: Colors.grey[300]!),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Total: ${professores.length} itens'),
-                            const Row(
-                              children: [
-                                Text('1'),
-                                SizedBox(width: 16),
-                                Text('10 / página'),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
+
+          const SizedBox(height: 40),
         ],
       ),
     );
