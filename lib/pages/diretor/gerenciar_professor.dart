@@ -14,6 +14,8 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
   String _disciplinaFiltro = 'Selecione';
   String _termoBusca = '';
 
+  bool get isMobile => MediaQuery.of(context).size.width < 800;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,155 +78,8 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
 
           // FILTROS
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Row(
-              children: [
-                // Busca
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _buscaController,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar por nome',
-                      hintStyle: const TextStyle(fontSize: 14),
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      fillColor: Colors.white,
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    onChanged: (value) =>
-                        setState(() => _termoBusca = value.toLowerCase()),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Status
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    value: _statusFiltro,
-                    decoration: InputDecoration(
-                      labelText: 'Status',
-                      labelStyle: const TextStyle(fontSize: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      fillColor: Colors.white,
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    items: ['Sem filtro', 'Ativo', 'Inativo']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _statusFiltro = v!),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Disciplina
-                Expanded(
-                  flex: 2,
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('usuarios')
-                        .where('tipo', isEqualTo: 'professor')
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      Set<String> disciplinas = {'Selecione'};
-
-                      if (snapshot.hasData) {
-                        for (var doc in snapshot.data!.docs) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          final disciplina = data['disciplina'];
-                          if (disciplina != null && disciplina.isNotEmpty) {
-                            disciplinas.add(disciplina);
-                          }
-                        }
-                      }
-
-                      return DropdownButtonFormField<String>(
-                        value: _disciplinaFiltro,
-                        decoration: InputDecoration(
-                          labelText: 'Perfil/Atribuição',
-                          labelStyle: const TextStyle(fontSize: 14),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          fillColor: Colors.white,
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                        items: disciplinas
-                            .toList()
-                            .map(
-                              (d) => DropdownMenuItem(value: d, child: Text(d)),
-                            )
-                            .toList(),
-                        onChanged: (v) =>
-                            setState(() => _disciplinaFiltro = v!),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Botão Novo
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(
-                    context,
-                    '/diretor/cadastrar-professor',
-                  ),
-                  icon: const Icon(Icons.add_circle_outline, size: 18),
-                  label: const Text(
-                    'Novo professor',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFF5F5),
-                    foregroundColor: const Color(0xFFE74C3C),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(
-                        color: Color(0xFFFFCDD2),
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 40.0),
+            child: isMobile ? _buildMobileFilters() : _buildDesktopFilters(),
           ),
 
           const SizedBox(height: 24),
@@ -576,6 +431,281 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+
+  Widget _buildMobileFilters() {
+    return Column(
+      children: [
+        // Busca
+        TextField(
+          controller: _buscaController,
+          decoration: InputDecoration(
+            hintText: 'Buscar por nome',
+            hintStyle: const TextStyle(fontSize: 14),
+            prefixIcon: const Icon(Icons.search, size: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            fillColor: Colors.white,
+            filled: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          onChanged: (value) =>
+              setState(() => _termoBusca = value.toLowerCase()),
+        ),
+        const SizedBox(height: 16),
+
+        // Status
+        DropdownButtonFormField<String>(
+          value: _statusFiltro,
+          decoration: InputDecoration(
+            labelText: 'Status',
+            labelStyle: const TextStyle(fontSize: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            fillColor: Colors.white,
+            filled: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          items: [
+            'Sem filtro',
+            'Ativo',
+            'Inativo',
+          ].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+          onChanged: (v) => setState(() => _statusFiltro = v!),
+        ),
+        const SizedBox(height: 16),
+
+        // Disciplina
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('usuarios')
+              .where('tipo', isEqualTo: 'professor')
+              .snapshots(),
+          builder: (context, snapshot) {
+            Set<String> disciplinas = {'Selecione'};
+
+            if (snapshot.hasData) {
+              for (var doc in snapshot.data!.docs) {
+                final data = doc.data() as Map<String, dynamic>;
+                final disciplina = data['disciplina'];
+                if (disciplina != null && disciplina.isNotEmpty) {
+                  disciplinas.add(disciplina);
+                }
+              }
+            }
+
+            return DropdownButtonFormField<String>(
+              value: _disciplinaFiltro,
+              decoration: InputDecoration(
+                labelText: 'Perfil/Atribuição',
+                labelStyle: const TextStyle(fontSize: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                fillColor: Colors.white,
+                filled: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              items: disciplinas
+                  .toList()
+                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                  .toList(),
+              onChanged: (v) => setState(() => _disciplinaFiltro = v!),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Botão Novo
+        ElevatedButton.icon(
+          onPressed: () =>
+              Navigator.pushNamed(context, '/diretor/cadastrar-professor'),
+          icon: const Icon(Icons.add_circle_outline, size: 18),
+          label: const Text(
+            'Novo professor',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFFF5F5),
+            foregroundColor: const Color(0xFFE74C3C),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: const BorderSide(color: Color(0xFFFFCDD2), width: 1),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopFilters() {
+    return Row(
+      children: [
+        // Busca
+        Expanded(
+          flex: 3,
+          child: TextField(
+            controller: _buscaController,
+            decoration: InputDecoration(
+              hintText: 'Buscar por nome',
+              hintStyle: const TextStyle(fontSize: 14),
+              prefixIcon: const Icon(Icons.search, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              fillColor: Colors.white,
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            onChanged: (value) =>
+                setState(() => _termoBusca = value.toLowerCase()),
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Status
+        Expanded(
+          flex: 2,
+          child: DropdownButtonFormField<String>(
+            value: _statusFiltro,
+            decoration: InputDecoration(
+              labelText: 'Status',
+              labelStyle: const TextStyle(fontSize: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              fillColor: Colors.white,
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            items: [
+              'Sem filtro',
+              'Ativo',
+              'Inativo',
+            ].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+            onChanged: (v) => setState(() => _statusFiltro = v!),
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Disciplina
+        Expanded(
+          flex: 2,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('usuarios')
+                .where('tipo', isEqualTo: 'professor')
+                .snapshots(),
+            builder: (context, snapshot) {
+              Set<String> disciplinas = {'Selecione'};
+
+              if (snapshot.hasData) {
+                for (var doc in snapshot.data!.docs) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final disciplina = data['disciplina'];
+                  if (disciplina != null && disciplina.isNotEmpty) {
+                    disciplinas.add(disciplina);
+                  }
+                }
+              }
+
+              return DropdownButtonFormField<String>(
+                value: _disciplinaFiltro,
+                decoration: InputDecoration(
+                  labelText: 'Perfil/Atribuição',
+                  labelStyle: const TextStyle(fontSize: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  fillColor: Colors.white,
+                  filled: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                items: disciplinas
+                    .toList()
+                    .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                    .toList(),
+                onChanged: (v) => setState(() => _disciplinaFiltro = v!),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 16),
+
+        // Botão Novo
+        ElevatedButton.icon(
+          onPressed: () =>
+              Navigator.pushNamed(context, '/diretor/cadastrar-professor'),
+          icon: const Icon(Icons.add_circle_outline, size: 18),
+          label: const Text(
+            'Novo professor',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFFF5F5),
+            foregroundColor: const Color(0xFFE74C3C),
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: const BorderSide(color: Color(0xFFFFCDD2), width: 1),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
