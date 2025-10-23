@@ -1,65 +1,27 @@
-// import 'package:flutter/material.dart';
-
-// class MateriasAluno extends StatelessWidget {
-//   const MateriasAluno({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Matérias'),
-//         backgroundColor: const Color(0xFF7DD3FC),
-//         foregroundColor: Colors.black,
-//       ),
-//       body: const Center(
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Icon(Icons.book, size: 100, color: Color(0xFF7DD3FC)),
-//             SizedBox(height: 20),
-//             Text(
-//               'Suas Matérias',
-//               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-//             ),
-//             Text('Lista de matérias aparecerá aqui'),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+// Importaremos a nova tela aqui
+import 'detalhes_materias_alunos.dart'; // Você precisará criar este arquivo
 
-// Definindo a lista de itens de navegação (com um ID único)
+// Cores baseadas no código original (azul claro)
+const Color _primaryColor = Color(0xFF7DD3FC); 
+const Color _sidebarBackgroundColor = Color(0xFFEBEBEB); 
+const Color _cardBackgroundColor = Color(0xFFF0F0F0); 
+const double _desktopBreakpoint = 700;
+const double _maxContentWidth = 1000;
+
+// ====================================================================
+// Itens de navegação (simplificados)
+// ====================================================================
 const List<Map<String, dynamic>> _navItems = [
-  {'title': 'Arquivos', 'icon': Icons.folder_open, 'id': 'files'},
   {'title': 'Matérias', 'icon': Icons.book, 'id': 'subjects'},
+  {'title': 'Arquivos', 'icon': Icons.folder_open, 'id': 'files'},
   {'title': 'Mensagem', 'icon': Icons.mail_outline, 'id': 'messages'},
   {'title': 'Notas', 'icon': Icons.description_outlined, 'id': 'notes'},
 ];
 
-// Definindo a lista de matérias para o Grid
-const List<String> _subjects = [
-  'Língua Portuguesa',
-  'Matemática',
-  'Biologia',
-  'História',
-  'Geografia',
-  'Física',
-  'Química',
-  'Lingua Inglesa',
-];
-
-// Cores baseadas no Figma/código original
-const Color _primaryColor = Color(0xFFB2EBF2); // Fundo do AppBar e Sidebar (cor clara do Figma)
-const Color _sidebarBackgroundColor = Color(0xFFEBEBEB); // Fundo da Sidebar
-const Color _cardBackgroundColor = Color(0xFFF0F0F0); // Cor dos cards de matéria
-const double _desktopBreakpoint = 700; // Ponto de quebra para layout Desktop/Mobile
-const double _maxContentWidth = 1000; // Largura máxima do conteúdo centralizado
-
 // ====================================================================
-// 1. Classe de Tela de Placeholder (para as outras opções do menu)
+// PlaceholderScreen (mantida)
 // ====================================================================
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -86,7 +48,7 @@ class PlaceholderScreen extends StatelessWidget {
 }
 
 // ====================================================================
-// 2. Classe Principal (StatefulWidget) para gerenciar o estado
+// Classe Principal: MateriasAluno
 // ====================================================================
 class MateriasAluno extends StatefulWidget {
   const MateriasAluno({super.key});
@@ -96,16 +58,13 @@ class MateriasAluno extends StatefulWidget {
 }
 
 class _MateriasAlunoState extends State<MateriasAluno> {
-  // Estado para rastrear o item selecionado (inicia em 'subjects' - Matérias)
   String _selectedNavItemId = 'subjects';
 
-  // Define o conteúdo da tela principal com base no item selecionado e no layout
   Widget _getCurrentScreenContent({required bool isDesktopLayout}) {
     switch (_selectedNavItemId) {
       case 'subjects':
-        // CORREÇÃO: Define a contagem de colunas correta para o layout
         final int columns = isDesktopLayout ? 4 : 2;
-        return _buildContentGrid(columns); 
+        return _buildContentGrid(columns, isDesktopLayout); // Passando isDesktopLayout
       case 'files':
         return const PlaceholderScreen(title: 'Arquivos');
       case 'messages':
@@ -117,7 +76,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     }
   }
 
-  // Define o título da AppBar com base no item selecionado
   String _getCurrentTitle() {
     final item = _navItems.firstWhere(
       (item) => item['id'] == _selectedNavItemId,
@@ -126,16 +84,14 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     return item['title'] as String;
   }
 
-  // ====================================================================
-  // 3. Métodos de Construção
-  // ====================================================================
+  // ... (métodos build, _buildAppBar, _buildBody, _buildDesktopLayout, _buildSideNav, _buildDrawer) ...
+  
+  // (Mantendo os métodos de layout responsivo)
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold principal que adapta a AppBar e o corpo
     return Scaffold(
       appBar: _buildAppBar(),
-      // O Drawer só é visível no modo Mobile quando o ícone de menu é clicado
       drawer: MediaQuery.of(context).size.width < _desktopBreakpoint 
           ? _buildDrawer(context) 
           : null,
@@ -145,7 +101,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      // Título dinâmico
       centerTitle: true,
       title: Text(
         _getCurrentTitle(),
@@ -159,7 +114,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
       elevation: 0, 
       foregroundColor: Colors.black,
       
-      // Ícone de perfil à direita
       actions: const [
         Padding(
           padding: EdgeInsets.only(right: 16.0),
@@ -172,36 +126,25 @@ class _MateriasAlunoState extends State<MateriasAluno> {
   Widget _buildBody(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Se a largura for maior que o breakpoint, usa o layout Desktop
         if (constraints.maxWidth > _desktopBreakpoint) {
           return _buildDesktopLayout();
         } 
-        // Caso contrário, usa o layout Mobile (Drawer implícito pela AppBar)
         else {
-          // No mobile, o conteúdo é retornado no modo isDesktopLayout: false
           return _getCurrentScreenContent(isDesktopLayout: false);
         }
       },
     );
   }
 
-  // Layout para telas largas (Desktop/Tablet)
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        // 1. Sidebar (Navigation Rail) à esquerda
         _buildSideNav(),
-        
-        // 2. Conteúdo Principal (Centralizado)
         Expanded(
-          // Adiciona Center para centralizar vertical e horizontalmente 
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-              // Envolve o conteúdo em SingleChildScrollView para permitir 
-              // centralização vertical e evitar overflow.
               child: SingleChildScrollView( 
-                // Passa o flag de desktop para que o grid saiba usar 4 colunas
                 child: _getCurrentScreenContent(isDesktopLayout: true), 
               ),
             ),
@@ -211,10 +154,9 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     );
   }
 
-  // Sidebar Fixa para Desktop
   Widget _buildSideNav() {
     return Container(
-      width: 250, // Largura da Sidebar
+      width: 250,
       color: _sidebarBackgroundColor, 
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: ListView.builder(
@@ -236,7 +178,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
               ),
             ),
             onTap: () {
-              // Atualiza o estado
               setState(() {
                 _selectedNavItemId = item['id'] as String;
               });
@@ -247,7 +188,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     );
   }
 
-  // Drawer (Menu Lateral) para Mobile
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: Container(
@@ -271,11 +211,9 @@ class _MateriasAlunoState extends State<MateriasAluno> {
                 ),
               ),
               onTap: () {
-                // 1. Atualiza o estado
                 setState(() {
                   _selectedNavItemId = item['id'] as String;
                 });
-                // 2. Fecha o Drawer
                 Navigator.pop(context); 
               },
             );
@@ -285,46 +223,81 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     );
   }
 
-  // Grid de Cards de Matérias
-  Widget _buildContentGrid(int crossAxisCount) {
-    // A flag isDesktop é true apenas quando crossAxisCount é 4 (o valor passado pelo desktop)
-    final isDesktopLayout = crossAxisCount == 4; 
 
+  // ====================================================================
+  // MÉTODO MODIFICADO: _buildContentGrid (com StreamBuilder)
+  // ====================================================================
+
+  Widget _buildContentGrid(int crossAxisCount, bool isDesktopLayout) {
     return Container(
-      color: Colors.white, // Fundo branco para a área de conteúdo
+      color: Colors.white,
       padding: const EdgeInsets.all(32.0),
-      child: GridView.builder(
-        // shrinkWrap: true é essencial quando dentro de SingleChildScrollView (Desktop)
-        shrinkWrap: isDesktopLayout, 
-        // Desabilita o scroll do grid se o SingleChildScrollView o estiver envolvendo
-        physics: isDesktopLayout ? const NeverScrollableScrollPhysics() : null,
-        
-        // Usa a contagem de colunas passada (4 ou 2)
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount, 
-          crossAxisSpacing: 32.0,
-          mainAxisSpacing: 32.0,
-          childAspectRatio: 2.0, // Proporção da altura para a largura do card
-        ),
-        itemCount: _subjects.length,
-        itemBuilder: (context, index) {
-          return _buildSubjectCard(_subjects[index]);
+      // StreamBuilder para buscar as matérias do Firestore
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('materias').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Erro ao carregar matérias.'));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final materias = snapshot.data?.docs ?? [];
+          
+          if (materias.isEmpty) {
+            return const Center(child: Text('Nenhuma matéria encontrada.'));
+          }
+
+          return GridView.builder(
+            shrinkWrap: isDesktopLayout, 
+            physics: isDesktopLayout ? const NeverScrollableScrollPhysics() : null,
+            
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount, 
+              crossAxisSpacing: 32.0,
+              mainAxisSpacing: 32.0,
+              childAspectRatio: 2.0,
+            ),
+            itemCount: materias.length,
+            itemBuilder: (context, index) {
+              final materiaDoc = materias[index];
+              final materiaData = materiaDoc.data() as Map<String, dynamic>;
+              
+              final materiaId = materiaDoc.id;
+              final materiaTitle = materiaData['nome'] ?? 'Matéria Sem Nome';
+
+              return _buildSubjectCard(materiaTitle, materiaId);
+            },
+          );
         },
       ),
     );
   }
 
-  // Card de Matéria individual
-  Widget _buildSubjectCard(String title) {
+  // ====================================================================
+  // MÉTODO MODIFICADO: _buildSubjectCard (com navegação)
+  // ====================================================================
+
+  Widget _buildSubjectCard(String title, String materiaId) {
     return Card(
-      elevation: 0, // Sem sombra
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0), // Bordas arredondadas
+        borderRadius: BorderRadius.circular(8.0),
       ),
-      color: _cardBackgroundColor, // Cor de fundo do card
+      color: _cardBackgroundColor,
       child: InkWell(
         onTap: () {
-          // Ação ao clicar no card da matéria
+          // Ação ao clicar: Navegar para a tela de detalhes
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetalhesMateriaAluno(
+                materiaId: materiaId,
+                nomeMateria: title,
+              ),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(8.0),
         child: Center(
