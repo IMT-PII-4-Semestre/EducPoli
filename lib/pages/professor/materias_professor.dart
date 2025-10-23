@@ -1,5 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'detalhes_materia_professor.dart'; 
 
 class MateriasProfessor extends StatelessWidget {
   const MateriasProfessor({super.key});
@@ -49,11 +51,30 @@ class MateriasProfessor extends StatelessWidget {
             itemCount: materias.length,
             itemBuilder: (context, index) {
               final materia = materias[index].data() as Map<String, dynamic>;
+              final materiaNome = materia['nome'] ?? 'Sem nome';
+              
               return Card(
                 child: ListTile(
                   leading: const Icon(Icons.book),
-                  title: Text(materia['nome'] ?? 'Sem nome'),
+                  title: Text(materiaNome),
                   subtitle: Text(materia['descricao'] ?? 'Sem descrição'),
+
+                  // Lógica de navegação adicionada aqui
+                  onTap: () {
+                    final materiaDoc = materias[index]; 
+                    final materiaNome = materia['nome'] ?? 'Sem nome';
+                    final materiaId = materiaDoc.id;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetalhesMateriaProfessor(
+                          materiaId: materiaId,
+                          nomeMateria: materiaNome, 
+                        ),
+                      ),
+                    );
+                  },
+
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
