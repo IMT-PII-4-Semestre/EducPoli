@@ -1,9 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 
-// Definindo as cores do layout
 const Color primaryOrange = Color(0xFFFF9500);
 const Color contentRowColor = Color(0xFFE0E0E0); 
 
@@ -74,7 +72,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     final isLargeScreen = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
-      // Removendo o Drawer e a chamada para PainelSidebar
+      // Removendo o Drawer
       drawer: null, 
       
       appBar: PreferredSize(
@@ -353,10 +351,6 @@ class DetalhesMateriaProfessor extends StatelessWidget {
       ),
     );
   }
-  
-  // =========================================================
-  // MÉTODOS DE ADIÇÃO E EXCLUSÃO/EDIÇÃO
-  // =========================================================
 
   // --- MATERIAIS: ADIÇÃO ---
   void _mostrarDialogAdicionarMaterial(BuildContext context, String aulaId) {

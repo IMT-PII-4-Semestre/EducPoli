@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 
-// Cores utilizadas (iguais às do professor, apenas para manter o padrão)
-const Color primaryBlue = Color(0xFF7DD3FC); // Cor do AppBar (de MateriasAluno)
-const Color contentRowColor = Color(0xFFF0F0F0); // Cor dos itens da lista
+const Color primaryBlue = Color(0xFF7DD3FC); 
+const Color contentRowColor = Color(0xFFF0F0F0); 
 
 class DetalhesMateriaAluno extends StatelessWidget {
   final String materiaId;
@@ -31,7 +30,7 @@ class DetalhesMateriaAluno extends StatelessWidget {
     }
   }
   
-  // Função de Abertura de Link (idêntica à do professor)
+  // Função de Abertura de Link 
   Future<void> _abrirMaterial(BuildContext context, String aulaId, String materialId) async {
     try {
       final materialDoc = await FirebaseFirestore.instance
@@ -207,7 +206,6 @@ class DetalhesMateriaAluno extends StatelessWidget {
     );
   }
 
-  // MÉTODO MODIFICADO: A linha do material é CLICÁVEL, mas SEM OPÇÕES DE EDIÇÃO (trailing)
   Widget _buildMaterialRow(
     BuildContext context, 
     String name, 
@@ -244,7 +242,6 @@ class DetalhesMateriaAluno extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            // Não há botões de edição/exclusão para o aluno
             const SizedBox(width: 8), 
           ],
         ),

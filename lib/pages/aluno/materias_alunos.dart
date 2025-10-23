@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Importaremos a nova tela aqui
-import 'detalhes_materias_alunos.dart'; // Você precisará criar este arquivo
+import 'detalhes_materias_alunos.dart'; 
 
-// Cores baseadas no código original (azul claro)
 const Color _primaryColor = Color(0xFF7DD3FC); 
 const Color _sidebarBackgroundColor = Color(0xFFEBEBEB); 
 const Color _cardBackgroundColor = Color(0xFFF0F0F0); 
 const double _desktopBreakpoint = 700;
 const double _maxContentWidth = 1000;
 
-// ====================================================================
-// Itens de navegação (simplificados)
-// ====================================================================
 const List<Map<String, dynamic>> _navItems = [
   {'title': 'Matérias', 'icon': Icons.book, 'id': 'subjects'},
   {'title': 'Arquivos', 'icon': Icons.folder_open, 'id': 'files'},
@@ -20,9 +15,6 @@ const List<Map<String, dynamic>> _navItems = [
   {'title': 'Notas', 'icon': Icons.description_outlined, 'id': 'notes'},
 ];
 
-// ====================================================================
-// PlaceholderScreen (mantida)
-// ====================================================================
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen({super.key, required this.title});
@@ -47,9 +39,6 @@ class PlaceholderScreen extends StatelessWidget {
   }
 }
 
-// ====================================================================
-// Classe Principal: MateriasAluno
-// ====================================================================
 class MateriasAluno extends StatefulWidget {
   const MateriasAluno({super.key});
 
@@ -83,10 +72,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     );
     return item['title'] as String;
   }
-
-  // ... (métodos build, _buildAppBar, _buildBody, _buildDesktopLayout, _buildSideNav, _buildDrawer) ...
-  
-  // (Mantendo os métodos de layout responsivo)
 
   @override
   Widget build(BuildContext context) {
@@ -223,11 +208,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
     );
   }
 
-
-  // ====================================================================
-  // MÉTODO MODIFICADO: _buildContentGrid (com StreamBuilder)
-  // ====================================================================
-
   Widget _buildContentGrid(int crossAxisCount, bool isDesktopLayout) {
     return Container(
       color: Colors.white,
@@ -274,10 +254,6 @@ class _MateriasAlunoState extends State<MateriasAluno> {
       ),
     );
   }
-
-  // ====================================================================
-  // MÉTODO MODIFICADO: _buildSubjectCard (com navegação)
-  // ====================================================================
 
   Widget _buildSubjectCard(String title, String materiaId) {
     return Card(

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'detalhes_materia_professor.dart'; 
@@ -59,7 +58,7 @@ class MateriasProfessor extends StatelessWidget {
                   title: Text(materiaNome),
                   subtitle: Text(materia['descricao'] ?? 'Sem descrição'),
 
-                  // Lógica de navegação adicionada aqui
+                  // Lógica de navegação 
                   onTap: () {
                     final materiaDoc = materias[index]; 
                     final materiaNome = materia['nome'] ?? 'Sem nome';
