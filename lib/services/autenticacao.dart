@@ -27,17 +27,47 @@ class ServicoAutenticacao {
 
   Future<Usuario?> buscarDadosUsuario(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore
-          .collection('usuarios')
-          .doc(uid)
-          .get();
+      DocumentSnapshot doc =
+          await _firestore.collection('usuarios').doc(uid).get();
 
       if (doc.exists) {
-        return Usuario.fromMap(doc.data() as Map<String, dynamic>);
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Usuario.fromMap(data);
       }
       return null;
     } catch (e) {
       throw Exception('Erro ao buscar dados: ${e.toString()}');
+    }
+  }
+
+  // Buscar dados do usuário atual logado
+  Future<Map<String, dynamic>?> buscarDadosUsuarioAtual() async {
+    try {
+      final uid = _auth.currentUser?.uid;
+      if (uid == null) return null;
+
+      DocumentSnapshot doc =
+          await _firestore.collection('usuarios').doc(uid).get();
+
+      if (doc.exists) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Erro ao buscar dados do usuário: ${e.toString()}');
+    }
+  }
+
+  // Verificar se usuário está ativo
+  Future<bool> verificarUsuarioAtivo() async {
+    try {
+      final dados = await buscarDadosUsuarioAtual();
+      return dados?['ativo'] ?? false;
+    } catch (e) {
+      return false;
     }
   }
 

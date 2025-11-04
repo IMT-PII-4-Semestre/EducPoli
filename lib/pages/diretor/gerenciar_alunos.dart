@@ -262,9 +262,8 @@ class _AlunosDiretorState extends State<AlunosDiretor> {
                   var alunos = snapshot.data!.docs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     final nome = (data['nome'] ?? '').toString().toLowerCase();
-                    final email = (data['email'] ?? '')
-                        .toString()
-                        .toLowerCase();
+                    final email =
+                        (data['email'] ?? '').toString().toLowerCase();
                     final ra = (data['ra'] ?? '').toString().toLowerCase();
                     final ativo = data['ativo'] ?? true;
                     final turma = data['turma'] ?? '';
@@ -272,8 +271,7 @@ class _AlunosDiretorState extends State<AlunosDiretor> {
                     if (_termoBusca.isNotEmpty &&
                         !nome.contains(_termoBusca) &&
                         !email.contains(_termoBusca) &&
-                        !ra.contains(_termoBusca))
-                      return false;
+                        !ra.contains(_termoBusca)) return false;
 
                     if (_statusFiltro == 'Ativo' && !ativo) return false;
                     if (_statusFiltro == 'Inativo' && ativo) return false;
@@ -663,12 +661,12 @@ class _AlunosDiretorState extends State<AlunosDiretor> {
                     .collection('usuarios')
                     .doc(id)
                     .update({
-                      'nome': nomeCtrl.text,
-                      'ra': raCtrl.text,
-                      'email': emailCtrl.text,
-                      'turma': turma == 'Selecione' ? null : turma,
-                      'ativo': ativo,
-                    });
+                  'nome': nomeCtrl.text,
+                  'ra': raCtrl.text,
+                  'email': emailCtrl.text,
+                  'turma': turma == 'Selecione' ? null : turma,
+                  'ativo': ativo,
+                });
                 if (context.mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(

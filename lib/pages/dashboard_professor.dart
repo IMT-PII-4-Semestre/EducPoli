@@ -7,11 +7,6 @@ class DashboardProfessor extends StatelessWidget {
 
   static const menuItems = [
     DashboardMenuItem(
-      title: 'Adicionar',
-      icon: Icons.person_add,
-      route: '/professor/adicionar',
-    ),
-    DashboardMenuItem(
       title: 'Matérias',
       icon: Icons.book,
       route: '/professor/materias',

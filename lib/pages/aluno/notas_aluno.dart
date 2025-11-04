@@ -1,457 +1,620 @@
-// import 'package:flutter/material.dart';
-
-// class NotasAluno extends StatelessWidget {
-//   const NotasAluno({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Notas'),
-//         backgroundColor: const Color(0xFF7DD3FC),
-//         foregroundColor: Colors.black,
-//       ),
-//       body: const Center(
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Icon(Icons.assignment, size: 100, color: Color(0xFF7DD3FC)),
-//             SizedBox(height: 20),
-//             Text(
-//               'Suas Notas',
-//               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-//             ),
-//             Text('Notas e avaliações aparecerão aqui'),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/notas_service.dart';
+import 'boletim_aluno.dart';
 
-// Constante para definir o ponto de quebra (breakpoint) entre mobile e tablet/desktop
-const double kTabletBreakpoint = 600.0;
-// Cor de acento (Light Cyan/Sky Blue) baseada nas imagens do Figma
-const Color kPrimaryColor = Color(0xFFA5E6FA); // Próximo ao sky-200/300 do Tailwind
-// Cor de fundo do corpo da tela
-// COR AJUSTADA: De volta ao suave off-white, agora que o layout está confirmado.
-const Color kBackgroundColor = Color(0xFFF7F9FC);
-
-/// Widget principal que exibe a tela de Notas de forma responsiva.
-class NotasAluno extends StatelessWidget {
+class NotasAluno extends StatefulWidget {
   const NotasAluno({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      // O Drawer só será usado em telas pequenas (mobile),
-      // pois a navegação lateral é incorporada no body em telas grandes.
-      drawer:
-          MediaQuery.of(context).size.width < kTabletBreakpoint ? const _SidebarNavigation() : null,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          // Se a largura for maior ou igual ao breakpoint, exibe o layout de duas colunas (Desktop/Tablet)
-          if (constraints.maxWidth >= kTabletBreakpoint) {
-            // CORRIGIDO: Removido 'const' da Row e Expanded/child, pois '_NotasContent' é StatefulWidget.
-            return Row(
-              children: [
-                // 1. Sidebar de navegação
-                const _SidebarNavigation(),
-                // 2. Área de conteúdo principal (expandida)
-                Expanded(
-                  child: _NotasContent(), // CORRIGIDO: Removido 'const'
-                ),
-              ],
-            );
-          } else {
-            // Se a largura for menor que o breakpoint, exibe apenas o conteúdo principal (Mobile)
-            return _NotasContent(); // CORRIGIDO: Removido 'const'
-          }
-        },
-      ),
-    );
-  }
-
-  // Constrói a AppBar
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: const Text(
-        'Notas',
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-      backgroundColor: kPrimaryColor,
-      foregroundColor: Colors.black,
-      centerTitle: true,
-      elevation: 0, // Remove a sombra
-    );
-  }
+  State<NotasAluno> createState() => _NotasAlunoState();
 }
 
-/// Widget para o Painel de Navegação Lateral (Sidebar).
-class _SidebarNavigation extends StatelessWidget {
-  const _SidebarNavigation();
+class _NotasAlunoState extends State<NotasAluno>
+    with SingleTickerProviderStateMixin {
+  final NotasService _notasService = NotasService();
+  Map<String, dynamic>? _dadosAluno;
+  bool _carregando = true;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _carregarDadosAluno();
+  }
+
+  Future<void> _carregarDadosAluno() async {
+    setState(() => _carregando = true);
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final doc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          _dadosAluno = doc.data();
+          _dadosAluno!['id'] = doc.id;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar dados: $e')),
+        );
+      }
+    } finally {
+      setState(() => _carregando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Para telas grandes, a largura do sidebar é fixa. Para mobile, usa a largura padrão do Drawer.
-    final bool isDesktop = MediaQuery.of(context).size.width >= kTabletBreakpoint;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
+    if (_carregando) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Minhas Notas',
+          style: TextStyle(color: Colors.black87),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF3498DB),
+          unselectedLabelColor: Colors.grey[600],
+          indicatorColor: const Color(0xFF3498DB),
+          tabs: const [
+            Tab(
+              icon: Icon(Icons.assessment, size: 20),
+              text: 'Notas',
+            ),
+            Tab(
+              icon: Icon(Icons.assignment, size: 20),
+              text: 'Boletim',
+            ),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildAbaNotes(isMobile),
+          const BoletimAluno(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAbaNotes(bool isMobile) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream:
+          FirebaseFirestore.instance.collection('notas').doc(uid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Erro: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        Map<String, dynamic> notas = {};
+        if (snapshot.data!.exists) {
+          notas = snapshot.data!.data() as Map<String, dynamic>;
+        }
+
+        if (notas.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.assignment, size: 100, color: Colors.grey[300]),
+                const SizedBox(height: 20),
+                Text(
+                  'Nenhuma nota lançada ainda',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 16.0 : 40.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeaderNotas(isMobile),
+                const SizedBox(height: 32),
+                _buildResumoGeral(uid ?? '', isMobile),
+                const SizedBox(height: 32),
+                const Text(
+                  'Notas por Matéria',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...notas.entries.map((entry) {
+                  if (entry.key.startsWith('_')) return const SizedBox.shrink();
+                  return _buildCardMateria(
+                    entry.key,
+                    entry.value as Map<String, dynamic>? ?? {},
+                    isMobile,
+                  );
+                }).toList(),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeaderNotas(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Minhas Notas',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(Icons.person, size: 16, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Text(
+              _dadosAluno?['nome'] ?? '-',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            const SizedBox(width: 24),
+            Icon(Icons.badge, size: 16, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Text(
+              'RA: ${_dadosAluno?['ra'] ?? '-'}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+            const SizedBox(width: 24),
+            Icon(Icons.class_, size: 16, color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Text(
+              'Turma: ${_dadosAluno?['turma'] ?? '-'}',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResumoGeral(String uid, bool isMobile) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _notasService.buscarEstatisticasAluno(uid),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final stats = snapshot.data!;
+        final mediaGeral = stats['media_geral'] ?? 0.0;
+        final totalMaterias = stats['total_materias'] ?? 0;
+        final aprovado = stats['aprovado_em'] ?? 0;
+        final recuperacao = stats['recuperacao_em'] ?? 0;
+
+        if (isMobile) {
+          return Column(
+            children: [
+              _buildCardEstatistica(
+                'Média Geral',
+                mediaGeral.toStringAsFixed(2),
+                Icons.school,
+                _getCorNota(mediaGeral),
+                isMobile,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildCardEstatistica(
+                      'Aprovado',
+                      '$aprovado',
+                      Icons.check_circle,
+                      Colors.green,
+                      isMobile,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildCardEstatistica(
+                      'Recuperação',
+                      '$recuperacao',
+                      Icons.warning,
+                      Colors.orange,
+                      isMobile,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildCardEstatistica(
+                'Total de Matérias',
+                totalMaterias.toString(),
+                Icons.book,
+                Colors.blue,
+                isMobile,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(
+              child: _buildCardEstatistica(
+                'Média Geral',
+                mediaGeral.toStringAsFixed(2),
+                Icons.school,
+                _getCorNota(mediaGeral),
+                isMobile,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildCardEstatistica(
+                'Aprovado em',
+                '$aprovado matérias',
+                Icons.check_circle,
+                Colors.green,
+                isMobile,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildCardEstatistica(
+                'Recuperação em',
+                '$recuperacao matérias',
+                Icons.warning,
+                Colors.orange,
+                isMobile,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildCardEstatistica(
+                'Total de Matérias',
+                totalMaterias.toString(),
+                Icons.book,
+                Colors.blue,
+                isMobile,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCardEstatistica(
+    String label,
+    String valor,
+    IconData icone,
+    Color cor,
+    bool isMobile,
+  ) {
     return Container(
-      width: isDesktop ? 250 : null, // Largura fixa para desktop/tablet
-      color: Colors.white, // Fundo branco do painel lateral
-      child: ListView(
-        padding: isDesktop
-            ? const EdgeInsets.symmetric(vertical: 20)
-            : EdgeInsets.zero,
-        children: const [
-          // Item "Arquivos"
-          _SidebarItem(
-            icon: Icons.folder_outlined,
-            title: 'Arquivos',
-            isSelected: false,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icone, color: cor, size: 24),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  valor,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: cor,
+                  ),
+                ),
+              ),
+            ],
           ),
-          // Item "Matérias"
-          _SidebarItem(
-            icon: Icons.book_outlined,
-            title: 'Matérias',
-            isSelected: false,
-          ),
-          // Item "Mensagem"
-          _SidebarItem(
-            icon: Icons.mail_outline,
-            title: 'Mensagem',
-            isSelected: false,
-          ),
-          // Item "Notas" (Selecionado)
-          _SidebarItem(
-            icon: Icons.assignment_outlined,
-            title: 'Notas',
-            isSelected: true,
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-/// Widget para um item individual na Sidebar.
-class _SidebarItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool isSelected;
+  Widget _buildCardMateria(
+    String materia,
+    Map<String, dynamic> notas,
+    bool isMobile,
+  ) {
+    final bim1 = notas['bim1'];
+    final bim2 = notas['bim2'];
+    final bim3 = notas['bim3'];
+    final bim4 = notas['bim4'];
+    final media = notas['media_final'] ?? notas['media'];
+    final situacao = notas['situacao'] ?? 'Pendente';
 
-  const _SidebarItem({
-    required this.icon,
-    required this.title,
-    this.isSelected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      child: Material(
-        // Adiciona um efeito visual de seleção e borda arredondada
-        color: isSelected ? kPrimaryColor.withOpacity(0.3) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8.0),
-        child: InkWell(
-          onTap: () {
-            // Ação ao clicar (ex: navegar para outra tela)
-            if (MediaQuery.of(context).size.width < kTabletBreakpoint) {
-              Navigator.pop(context); // Fecha o drawer no mobile
-            }
-          },
-          borderRadius: BorderRadius.circular(8.0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _getCorMateria(materia),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  icon,
-                  color: isSelected ? Colors.black : Colors.black87,
-                  size: 20,
+                Row(
+                  children: [
+                    Icon(
+                      _getIconeMateria(materia),
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      materia,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? Colors.black : Colors.black87,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        media?.toStringAsFixed(2) ?? '-',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Média',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// MODELO DE DADOS para simular as notas detalhadas (boletim)
-class GradeData {
-  final String subject;
-  final String average;
-  final Map<String, List<String>> grades; // Ex: {'P1': ['9.0', '8.5', 'Aprovado'], 'P2': [...]}
-
-  const GradeData({
-    required this.subject,
-    required this.average,
-    required this.grades,
-  });
-}
-
-// Lista de matérias (dados mockados)
-const List<GradeData> mockGrades = [
-  GradeData(
-    subject: 'Matemática',
-    average: '8.5',
-    grades: {
-      '1º Bimestre': ['Prova', '9.0'],
-      '2º Bimestre': ['Trabalho', '8.0'],
-      '3º Bimestre': ['Final', '8.5'],
-      'Média Final': ['--', '8.5'],
-    },
-  ),
-  GradeData(
-    subject: 'Língua Portuguesa',
-    average: '9.2',
-    grades: {
-      '1º Bimestre': ['Prova', '9.5'],
-      '2º Bimestre': ['Redação', '8.9'],
-      '3º Bimestre': ['Final', '9.2'],
-      'Média Final': ['--', '9.2'],
-    },
-  ),
-  GradeData(
-    subject: 'História',
-    average: '7.8',
-    grades: {
-      '1º Bimestre': ['Prova', '7.0'],
-      '2º Bimestre': ['Seminário', '8.5'],
-      '3º Bimestre': ['Final', '7.9'],
-      'Média Final': ['--', '7.8'],
-    },
-  ),
-];
-
-
-/// NOVO WIDGET para o item de Matéria sem o ExpansionTile.
-/// Apenas exibe o nome e é clicável para abrir o boletim.
-class _SubjectGradeItem extends StatelessWidget {
-  final GradeData data;
-  final Function(GradeData) onTap;
-
-  const _SubjectGradeItem({
-    required this.data,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-        side: BorderSide(color: Colors.grey.shade300, width: 1),
-      ),
-      child: InkWell(
-        onTap: () => onTap(data), // Chama a função para mostrar a tabela
-        borderRadius: BorderRadius.circular(8.0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                data.subject,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-              ),
-              const Icon(Icons.keyboard_arrow_down, color: Colors.black54), // Ícone de dropdown
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// NOVO WIDGET: Tabela de Notas/Boletim Detalhado
-class _GradesTable extends StatelessWidget {
-  final GradeData data;
-  final VoidCallback onBack;
-
-  const _GradesTable({required this.data, required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    // Cabeçalhos da Tabela: Matéria, Avaliação (se houver) e Nota/Média
-    final List<String> columns = ['Período', 'Avaliação', 'Nota/Média'];
-
-    // Define a cor de fundo para o cabeçalho (um cinza suave)
-    const Color headerColor = Color(0xFFEEEEEE);
-    // Define a cor para a linha de média (destaque)
-    const Color averageRowColor = Color(0xFFFFFBE5); // Amarelo suave
-
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Botão Voltar
-          TextButton.icon(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Voltar para todas as Matérias'),
-          ),
-          const SizedBox(height: 15),
-
-          // Título da Matéria Selecionada
-          Text(
-            data.subject,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-
-          // Tabela de Notas
-          Table(
-            defaultColumnWidth: const IntrinsicColumnWidth(),
-            border: TableBorder.all(color: Colors.grey.shade300),
-            children: [
-              // Linha de Cabeçalho
-              TableRow(
-                decoration: const BoxDecoration(color: headerColor),
-                children: columns.map((header) {
-                  return TableCell(
-                    verticalAlignment: TableCellVerticalAlignment.middle,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Center(
-                        child: Text(
-                          header,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              // Linhas de Conteúdo (Notas por período)
-              ...data.grades.entries.map((entry) {
-                final String period = entry.key;
-                final String assessmentType = entry.value[0];
-                final String grade = entry.value[1];
-
-                final bool isAverageRow = period.contains('Média Final');
-
-                return TableRow(
-                  decoration: BoxDecoration(
-                    color: isAverageRow ? averageRowColor : Colors.white,
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: isMobile
+                ? Column(
+                    children: [
+                      _buildNotaBimestre('1º Bimestre', bim1, isMobile),
+                      const SizedBox(height: 12),
+                      _buildNotaBimestre('2º Bimestre', bim2, isMobile),
+                      const SizedBox(height: 12),
+                      _buildNotaBimestre('3º Bimestre', bim3, isMobile),
+                      const SizedBox(height: 12),
+                      _buildNotaBimestre('4º Bimestre', bim4, isMobile),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildNotaBimestre('1º Bim', bim1, isMobile),
+                      _buildNotaBimestre('2º Bim', bim2, isMobile),
+                      _buildNotaBimestre('3º Bim', bim3, isMobile),
+                      _buildNotaBimestre('4º Bim', bim4, isMobile),
+                    ],
                   ),
-                  children: [
-                    // Coluna Período
-                    TableCell(
-                      child: Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Text(period, style: TextStyle(fontWeight: isAverageRow ? FontWeight.bold : FontWeight.normal)),
-                      ),
-                    ),
-                    // Coluna Avaliação
-                    TableCell(
-                      child: Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Text(assessmentType, textAlign: TextAlign.center),
-                      ),
-                    ),
-                    // Coluna Nota/Média
-                    TableCell(
-                      child: Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Center(
-                          child: Text(
-                            grade,
-                            style: TextStyle(
-                              fontWeight: isAverageRow ? FontWeight.w900 : FontWeight.bold,
-                              color: double.tryParse(grade) != null && double.parse(grade) < 7.0
-                                  ? Colors.red.shade700 // Destaque para notas baixas
-                                  : Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ],
           ),
-          const SizedBox(height: 20),
-          // Área para informações adicionais/legenda
-          Text(
-            'Média da Matéria: ${data.average}',
-            style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _getIconeSituacao(situacao),
+                  size: 18,
+                  color: _getCorSituacao(situacao),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Situação: $situacao',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _getCorSituacao(situacao),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-/// Widget para a Área de Conteúdo Principal (Central).
-class _NotasContent extends StatefulWidget {
-  const _NotasContent();
-
-  @override
-  State<_NotasContent> createState() => _NotasContentState();
-}
-
-class _NotasContentState extends State<_NotasContent> {
-  // O estado que guarda a matéria selecionada. Se for null, mostra a lista.
-  GradeData? _selectedSubject;
-
-  // Função para mudar o estado e exibir o boletim
-  void _showGradesTable(GradeData subject) {
-    setState(() {
-      _selectedSubject = subject;
-    });
-  }
-
-  // Função para retornar à lista de matérias
-  void _hideGradesTable() {
-    setState(() {
-      _selectedSubject = null;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildNotaBimestre(String label, dynamic nota, bool isMobile) {
     return Container(
-      color: kBackgroundColor,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: _selectedSubject == null
-            ? ListView(
-                // Se nenhuma matéria estiver selecionada, mostra a lista de matérias
-                children: mockGrades.map((data) {
-                  return _SubjectGradeItem(
-                    data: data,
-                    onTap: _showGradesTable,
-                  );
-                }).toList(),
-              )
-            // Se uma matéria estiver selecionada, mostra a tabela de boletim
-            : _GradesTable(
-                data: _selectedSubject!,
-                onBack: _hideGradesTable,
-              ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            nota?.toStringAsFixed(2) ?? '-',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: _getCorNota(nota),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Color _getCorNota(dynamic nota) {
+    if (nota == null) return Colors.grey;
+    final n = nota is num ? nota.toDouble() : 0.0;
+    if (n >= 7.0) return Colors.green;
+    if (n >= 5.0) return Colors.orange;
+    return Colors.red;
+  }
+
+  Color _getCorMateria(String materia) {
+    final cores = {
+      'Matemática': const Color(0xFF3498DB),
+      'Português': const Color(0xFFE74C3C),
+      'História': const Color(0xFF9B59B6),
+      'Geografia': const Color(0xFFE67E22),
+      'Ciências': const Color(0xFF27AE60),
+      'Inglês': const Color(0xFFF39C12),
+      'Educação Física': const Color(0xFF1ABC9C),
+      'Artes': const Color(0xFFE91E63),
+      'Física': const Color(0xFF34495E),
+      'Química': const Color(0xFF16A085),
+      'Biologia': const Color(0xFF2ECC71),
+      'Filosofia': const Color(0xFF8E44AD),
+      'Sociologia': const Color(0xFFD35400),
+    };
+    return cores[materia] ?? const Color(0xFF95A5A6);
+  }
+
+  IconData _getIconeMateria(String materia) {
+    final icones = {
+      'Matemática': Icons.calculate,
+      'Português': Icons.menu_book,
+      'História': Icons.history_edu,
+      'Geografia': Icons.public,
+      'Ciências': Icons.science,
+      'Inglês': Icons.language,
+      'Educação Física': Icons.sports_soccer,
+      'Artes': Icons.palette,
+      'Física': Icons.waves,
+      'Química': Icons.biotech,
+      'Biologia': Icons.eco,
+      'Filosofia': Icons.psychology,
+      'Sociologia': Icons.groups,
+    };
+    return icones[materia] ?? Icons.book;
+  }
+
+  Color _getCorSituacao(String situacao) {
+    if (situacao == 'Aprovado') return Colors.green;
+    if (situacao == 'Recuperação') return Colors.orange;
+    if (situacao == 'Reprovado') return Colors.red;
+    return Colors.grey;
+  }
+
+  IconData _getIconeSituacao(String situacao) {
+    if (situacao == 'Aprovado') return Icons.check_circle;
+    if (situacao == 'Recuperação') return Icons.warning;
+    if (situacao == 'Reprovado') return Icons.cancel;
+    return Icons.help;
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 }

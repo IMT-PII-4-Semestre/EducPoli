@@ -15,8 +15,70 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
   final _emailController = TextEditingController();
   final _cpfController = TextEditingController();
   final _senhaController = TextEditingController();
-  final _disciplinaController = TextEditingController();
   bool _carregando = false;
+
+  // Multi-select de matérias
+  List<String> _materiasDisponiveis = [
+    'Matemática',
+    'Português',
+    'História',
+    'Geografia',
+    'Ciências',
+    'Inglês',
+    'Educação Física',
+    'Artes',
+    'Física',
+    'Química',
+    'Biologia',
+    'Filosofia',
+    'Sociologia',
+  ];
+  Set<String> _materiasSelecionadas = {};
+
+  // Validador de CPF
+  bool _validarCPF(String cpf) {
+    // Remove caracteres especiais
+    cpf = cpf.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Verifica se tem 11 dígitos
+    if (cpf.length != 11) return false;
+
+    // Verifica se todos os dígitos são iguais
+    if (RegExp(r'^(\d)\1{10}$').hasMatch(cpf)) return false;
+
+    // Calcula primeiro dígito verificador
+    int soma = 0;
+    for (int i = 0; i < 9; i++) {
+      soma += int.parse(cpf[i]) * (10 - i);
+    }
+    int resto = soma % 11;
+    int dv1 = resto < 2 ? 0 : 11 - resto;
+
+    if (int.parse(cpf[9]) != dv1) return false;
+
+    // Calcula segundo dígito verificador
+    soma = 0;
+    for (int i = 0; i < 10; i++) {
+      soma += int.parse(cpf[i]) * (11 - i);
+    }
+    resto = soma % 11;
+    int dv2 = resto < 2 ? 0 : 11 - resto;
+
+    if (int.parse(cpf[10]) != dv2) return false;
+
+    return true;
+  }
+
+  // Formatar CPF automaticamente
+  String _formatarCPF(String cpf) {
+    cpf = cpf.replaceAll(RegExp(r'[^\d]'), '');
+    if (cpf.length <= 3) return cpf;
+    if (cpf.length <= 6) return '${cpf.substring(0, 3)}.${cpf.substring(3)}';
+    if (cpf.length <= 9) {
+      return '${cpf.substring(0, 3)}.${cpf.substring(3, 6)}.${cpf.substring(6)}';
+    }
+    return '${cpf.substring(0, 3)}.${cpf.substring(3, 6)}.${cpf.substring(6, 9)}-${cpf.substring(9, 11)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,27 +156,106 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
                   ),
                   prefixIcon: const Icon(Icons.badge),
                   hintText: '000.000.000-00',
+                  helperText: 'Digite apenas números',
                 ),
                 keyboardType: TextInputType.number,
-                validator: (v) => v?.isEmpty ?? true ? 'Insira o CPF' : null,
+                onChanged: (value) {
+                  // Formata o CPF enquanto digita
+                  if (value.isNotEmpty) {
+                    final formatted = _formatarCPF(value);
+                    _cpfController.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.fromPosition(
+                        TextPosition(offset: formatted.length),
+                      ),
+                    );
+                  }
+                },
+                validator: (v) {
+                  if (v?.isEmpty ?? true) {
+                    return 'Insira o CPF';
+                  }
+                  if (!_validarCPF(v!)) {
+                    return 'CPF inválido';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
-              // Disciplina
-              TextFormField(
-                controller: _disciplinaController,
-                decoration: InputDecoration(
-                  labelText: 'Disciplina',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  prefixIcon: const Icon(Icons.book),
-                  hintText: 'Ex: Matemática',
+              // Matérias (Multi-select)
+              const Text(
+                'Matérias que leciona *',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
-                validator: (v) =>
-                    v?.isEmpty ?? true ? 'Insira a disciplina' : null,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                ),
+                child: _materiasSelecionadas.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Text(
+                          'Selecione pelo menos uma matéria',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _materiasSelecionadas.map((materia) {
+                            return Chip(
+                              label: Text(materia),
+                              onDeleted: () {
+                                setState(
+                                  () => _materiasSelecionadas.remove(materia),
+                                );
+                              },
+                              backgroundColor:
+                                  const Color(0xFFE74C3C).withOpacity(0.1),
+                              labelStyle: const TextStyle(
+                                color: Color(0xFFE74C3C),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 150,
+                child: ListView.builder(
+                  itemCount: _materiasDisponiveis.length,
+                  itemBuilder: (context, index) {
+                    final materia = _materiasDisponiveis[index];
+                    final selecionada = _materiasSelecionadas.contains(materia);
+
+                    return CheckboxListTile(
+                      value: selecionada,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            _materiasSelecionadas.add(materia);
+                          } else {
+                            _materiasSelecionadas.remove(materia);
+                          }
+                        });
+                      },
+                      title: Text(materia),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -190,31 +331,41 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
   Future<void> _cadastrar() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_materiasSelecionadas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione pelo menos uma matéria'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() => _carregando = true);
 
     try {
       // Criar usuário no Firebase Auth
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _senhaController.text.trim(),
-          );
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _senhaController.text.trim(),
+      );
 
       // Salvar dados no Firestore
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(userCredential.user!.uid)
           .set({
-            'id': userCredential.user!.uid,
-            'email': _emailController.text.trim(),
-            'nome': _nomeController.text.trim(),
-            'cpf': _cpfController.text.trim(),
-            'disciplina': _disciplinaController.text.trim(),
-            'tipo': 'professor',
-            'ativo': true,
-            'criadoEm': DateTime.now().toIso8601String(),
-            'turmas': [],
-          });
+        'id': userCredential.user!.uid,
+        'email': _emailController.text.trim(),
+        'nome': _nomeController.text.trim(),
+        'cpf': _cpfController.text.trim(),
+        'materias': _materiasSelecionadas.toList(),
+        'tipo': 'professor',
+        'ativo': true,
+        'criadoEm': DateTime.now().toIso8601String(),
+        'turmas': [],
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -258,7 +409,6 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
     _emailController.dispose();
     _cpfController.dispose();
     _senhaController.dispose();
-    _disciplinaController.dispose();
     super.dispose();
   }
 }

@@ -1,9 +1,9 @@
+import 'package:educ_poli/pages/aluno/boletim_aluno.dart';
 import 'package:educ_poli/pages/aluno/materias_alunos.dart';
 import 'package:educ_poli/pages/diretor/cadastrar_alunos.dart';
 import 'package:educ_poli/pages/diretor/cadastrar_professores.dart';
 import 'package:educ_poli/pages/diretor/gerenciar_alunos.dart';
 import 'package:educ_poli/pages/diretor/gerenciar_professor.dart';
-import 'package:educ_poli/pages/professor/adicionar_alunos.dart';
 import 'package:educ_poli/pages/professor/mensagens_professor.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -51,9 +51,9 @@ class MeuApp extends StatelessWidget {
         '/aluno/materias': (context) => const MateriasAluno(),
         '/aluno/mensagem': (context) => const MensagemAluno(),
         '/aluno/notas': (context) => const NotasAluno(),
+        '/aluno/boletim': (context) => const BoletimAluno(),
 
         // Rotas do Professor (com permissões de edição)
-        '/professor/adicionar': (context) => const AdicionarProfessor(),
         '/professor/materias': (context) => const MateriasProfessor(),
         '/professor/mensagem': (context) => const MensagemProfessor(),
         '/professor/notas': (context) => const NotasProfessor(),
