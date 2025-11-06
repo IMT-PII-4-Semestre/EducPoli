@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/notas_service.dart';
 
 class BoletimAluno extends StatefulWidget {
   const BoletimAluno({super.key});
@@ -11,7 +10,6 @@ class BoletimAluno extends StatefulWidget {
 }
 
 class _BoletimAlunoState extends State<BoletimAluno> {
-  final NotasService _notasService = NotasService();
   Map<String, dynamic>? _dadosAluno;
   bool _carregando = true;
 
@@ -55,168 +53,60 @@ class _BoletimAlunoState extends State<BoletimAluno> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (_carregando) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Boletim Escolar',
-          style: TextStyle(color: Colors.black87),
-        ),
-      ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream:
-            FirebaseFirestore.instance.collection('notas').doc(uid).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return StreamBuilder<DocumentSnapshot>(
+      stream:
+          FirebaseFirestore.instance.collection('notas').doc(uid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Erro: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          Map<String, dynamic> notas = {};
-          if (snapshot.data!.exists) {
-            notas = snapshot.data!.data() as Map<String, dynamic>;
-          }
+        Map<String, dynamic> notas = {};
+        if (snapshot.data!.exists) {
+          notas = snapshot.data!.data() as Map<String, dynamic>;
+        }
 
-          if (notas.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.assignment, size: 100, color: Colors.grey[300]),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Nenhuma nota lançada ainda',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(isMobile ? 16.0 : 40.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeaderBoletim(isMobile),
-                  const SizedBox(height: 32),
-                  ...notas.entries.map((entry) {
-                    if (entry.key.contains('media_') ||
-                        entry.key == 'situacao') {
-                      return const SizedBox.shrink();
-                    }
-                    return _buildTabelaMateriaBoletim(
-                      entry.key,
-                      entry.value as Map<String, dynamic>,
-                      isMobile,
-                    );
-                  }),
-                  const SizedBox(height: 40),
-                ],
-              ),
+        if (notas.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.assignment, size: 100, color: Colors.grey[300]),
+                const SizedBox(height: 20),
+                Text(
+                  'Nenhuma nota lançada ainda',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+              ],
             ),
           );
-        },
-      ),
-    );
-  }
+        }
 
-  Widget _buildHeaderBoletim(bool isMobile) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'BOLETIM ESCOLAR',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Período: 2025',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-              if (!isMobile)
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: const Color(0xFFFF9500),
-                  child: Text(
-                    _dadosAluno?['nome']?.substring(0, 1).toUpperCase() ?? 'A',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                ),
+              ...notas.entries.map((entry) {
+                if (entry.key.contains('media_') || entry.key == 'situacao') {
+                  return const SizedBox.shrink();
+                }
+                return _buildTabelaMateriaBoletim(
+                  entry.key,
+                  entry.value as Map<String, dynamic>,
+                  isMobile,
+                );
+              }),
+              const SizedBox(height: 40),
             ],
           ),
-          const SizedBox(height: 16),
-          Divider(color: Colors.grey[200]),
-          const SizedBox(height: 16),
-          _buildInfoAluno('Nome', _dadosAluno?['nome'] ?? '-'),
-          const SizedBox(height: 8),
-          _buildInfoAluno('RA', _dadosAluno?['ra'] ?? '-'),
-          const SizedBox(height: 8),
-          _buildInfoAluno('Turma', _dadosAluno?['turma'] ?? '-'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoAluno(String label, String valor) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            valor,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[700],
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 

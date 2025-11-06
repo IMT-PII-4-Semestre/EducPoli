@@ -7,11 +7,6 @@ class DashboardAluno extends StatelessWidget {
 
   static const menuItems = [
     DashboardMenuItem(
-      title: 'Arquivos',
-      icon: Icons.folder,
-      route: '/aluno/arquivos',
-    ),
-    DashboardMenuItem(
       title: 'Matérias',
       icon: Icons.book,
       route: '/aluno/materias',

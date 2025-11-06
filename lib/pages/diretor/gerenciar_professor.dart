@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/materias_service.dart';
 
 class ProfessoresDiretor extends StatefulWidget {
   const ProfessoresDiretor({super.key});
@@ -106,24 +107,22 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                   var professores = snapshot.data!.docs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
                     final nome = (data['nome'] ?? '').toString().toLowerCase();
-                    final email = (data['email'] ?? '')
-                        .toString()
-                        .toLowerCase();
+                    final email =
+                        (data['email'] ?? '').toString().toLowerCase();
                     final cpf = (data['cpf'] ?? '').toString().toLowerCase();
                     final ativo = data['ativo'] ?? true;
-                    final disciplina = data['disciplina'] ?? '';
+                    final materias = List<String>.from(data['materias'] ?? []);
 
                     if (_termoBusca.isNotEmpty &&
                         !nome.contains(_termoBusca) &&
                         !email.contains(_termoBusca) &&
-                        !cpf.contains(_termoBusca))
-                      return false;
+                        !cpf.contains(_termoBusca)) return false;
 
                     if (_statusFiltro == 'Ativo' && !ativo) return false;
                     if (_statusFiltro == 'Inativo' && ativo) return false;
 
                     if (_disciplinaFiltro != 'Selecione' &&
-                        disciplina != _disciplinaFiltro) {
+                        !materias.contains(_disciplinaFiltro)) {
                       return false;
                     }
 
@@ -223,9 +222,8 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                             separatorBuilder: (_, __) =>
                                 Divider(height: 1, color: Colors.grey[200]),
                             itemBuilder: (context, index) {
-                              final professor =
-                                  professores[index].data()
-                                      as Map<String, dynamic>;
+                              final professor = professores[index].data()
+                                  as Map<String, dynamic>;
                               final id = professores[index].id;
                               final ativo = professor['ativo'] ?? true;
 
@@ -275,13 +273,102 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                                             width: 1,
                                           ),
                                         ),
-                                        child: Text(
-                                          professor['disciplina'] ??
-                                              'Sem disciplina',
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFFE74C3C),
-                                            fontWeight: FontWeight.w500,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Wrap(
+                                            spacing: 3,
+                                            children: (professor['materias']
+                                                            as List<dynamic>? ??
+                                                        [])
+                                                    .isEmpty
+                                                ? [
+                                                    const SizedBox(
+                                                      height: 24,
+                                                      child: Center(
+                                                        child: Text(
+                                                          'Sem matérias',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: Color(
+                                                                0xFFE74C3C),
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ]
+                                                : (professor['materias']
+                                                            as List<dynamic>)
+                                                        .take(3)
+                                                        .map<Widget>((m) =>
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal: 5,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Colors
+                                                                    .grey[300],
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            3),
+                                                              ),
+                                                              child: Text(
+                                                                m.toString(),
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      700],
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            ))
+                                                        .toList() +
+                                                    [
+                                                      if ((professor['materias']
+                                                                  as List<
+                                                                      dynamic>)
+                                                              .length >
+                                                          3)
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 5,
+                                                            vertical: 2,
+                                                          ),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors
+                                                                .grey[400],
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        3),
+                                                          ),
+                                                          child: Text(
+                                                            '+${(professor['materias'] as List<dynamic>).length - 3}',
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 10,
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
                                           ),
                                         ),
                                       ),
@@ -495,26 +582,23 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
         const SizedBox(height: 16),
 
         // Disciplina
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('usuarios')
-              .where('tipo', isEqualTo: 'professor')
-              .snapshots(),
+        FutureBuilder<List<String>>(
+          future: MateriasService.obterMateriasDisponiveis(),
           builder: (context, snapshot) {
-            Set<String> disciplinas = {'Selecione'};
+            List<String> disciplinas = ['Selecione'];
 
             if (snapshot.hasData) {
-              for (var doc in snapshot.data!.docs) {
-                final data = doc.data() as Map<String, dynamic>;
-                final disciplina = data['disciplina'];
-                if (disciplina != null && disciplina.isNotEmpty) {
-                  disciplinas.add(disciplina);
-                }
-              }
+              disciplinas.addAll(snapshot.data ?? []);
+            }
+
+            // Garante que o valor selecionado está na lista
+            String valorFiltro = _disciplinaFiltro;
+            if (!disciplinas.contains(_disciplinaFiltro)) {
+              valorFiltro = 'Selecione';
             }
 
             return DropdownButtonFormField<String>(
-              value: _disciplinaFiltro,
+              value: valorFiltro,
               decoration: InputDecoration(
                 labelText: 'Perfil/Atribuição',
                 labelStyle: const TextStyle(fontSize: 14),
@@ -534,7 +618,6 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                 ),
               ),
               items: disciplinas
-                  .toList()
                   .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                   .toList(),
               onChanged: (v) => setState(() => _disciplinaFiltro = v!),
@@ -636,26 +719,23 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
         // Disciplina
         Expanded(
           flex: 2,
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('usuarios')
-                .where('tipo', isEqualTo: 'professor')
-                .snapshots(),
+          child: FutureBuilder<List<String>>(
+            future: MateriasService.obterMateriasDisponiveis(),
             builder: (context, snapshot) {
-              Set<String> disciplinas = {'Selecione'};
+              List<String> disciplinas = ['Selecione'];
 
               if (snapshot.hasData) {
-                for (var doc in snapshot.data!.docs) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final disciplina = data['disciplina'];
-                  if (disciplina != null && disciplina.isNotEmpty) {
-                    disciplinas.add(disciplina);
-                  }
-                }
+                disciplinas.addAll(snapshot.data ?? []);
+              }
+
+              // Garante que o valor selecionado está na lista
+              String valorFiltro = _disciplinaFiltro;
+              if (!disciplinas.contains(_disciplinaFiltro)) {
+                valorFiltro = 'Selecione';
               }
 
               return DropdownButtonFormField<String>(
-                value: _disciplinaFiltro,
+                value: valorFiltro,
                 decoration: InputDecoration(
                   labelText: 'Perfil/Atribuição',
                   labelStyle: const TextStyle(fontSize: 14),
@@ -675,7 +755,6 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                   ),
                 ),
                 items: disciplinas
-                    .toList()
                     .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                     .toList(),
                 onChanged: (v) => setState(() => _disciplinaFiltro = v!),
@@ -713,8 +792,10 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
     final nomeCtrl = TextEditingController(text: professor['nome']);
     final cpfCtrl = TextEditingController(text: professor['cpf']);
     final emailCtrl = TextEditingController(text: professor['email']);
-    final disciplinaCtrl = TextEditingController(text: professor['disciplina']);
     bool ativo = professor['ativo'] ?? true;
+
+    Set<String> materiasSelecionadas =
+        Set<String>.from(professor['materias'] ?? []);
 
     showDialog(
       context: context,
@@ -723,38 +804,131 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
           title: const Text('Editar Professor'),
           content: SizedBox(
             width: 500,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nomeCtrl,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                ),
-                TextField(
-                  controller: cpfCtrl,
-                  decoration: const InputDecoration(labelText: 'CPF'),
-                ),
-                TextField(
-                  controller: emailCtrl,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                TextField(
-                  controller: disciplinaCtrl,
-                  decoration: const InputDecoration(labelText: 'Disciplina'),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text('Status:'),
-                    Switch(
-                      value: ativo,
-                      onChanged: (v) => setStateDialog(() => ativo = v),
-                      activeColor: const Color(0xFFE74C3C),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nomeCtrl,
+                    decoration: const InputDecoration(labelText: 'Nome'),
+                  ),
+                  TextField(
+                    controller: cpfCtrl,
+                    decoration: const InputDecoration(labelText: 'CPF'),
+                  ),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Matérias que leciona *',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
                     ),
-                    Text(ativo ? 'Ativo' : 'Inativo'),
-                  ],
-                ),
-              ],
+                    child: materiasSelecionadas.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              'Selecione pelo menos uma matéria',
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: materiasSelecionadas.map((materia) {
+                                return Chip(
+                                  label: Text(materia),
+                                  onDeleted: () {
+                                    setStateDialog(() =>
+                                        materiasSelecionadas.remove(materia));
+                                  },
+                                  backgroundColor:
+                                      const Color(0xFFE74C3C).withOpacity(0.1),
+                                  labelStyle: const TextStyle(
+                                    color: Color(0xFFE74C3C),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 150,
+                    child: FutureBuilder<List<String>>(
+                      future: MateriasService.obterMateriasDisponiveis(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Text('Erro: ${snapshot.error}'),
+                          );
+                        }
+
+                        final materias = snapshot.data ?? [];
+
+                        if (materias.isEmpty) {
+                          return const Center(
+                            child: Text('Nenhuma matéria disponível'),
+                          );
+                        }
+
+                        return ListView.builder(
+                          itemCount: materias.length,
+                          itemBuilder: (context, index) {
+                            final materia = materias[index];
+                            final selecionada =
+                                materiasSelecionadas.contains(materia);
+
+                            return CheckboxListTile(
+                              value: selecionada,
+                              onChanged: (value) {
+                                setStateDialog(() {
+                                  if (value == true) {
+                                    materiasSelecionadas.add(materia);
+                                  } else {
+                                    materiasSelecionadas.remove(materia);
+                                  }
+                                });
+                              },
+                              title: Text(materia),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text('Status:'),
+                      Switch(
+                        value: ativo,
+                        onChanged: (v) => setStateDialog(() => ativo = v),
+                        activeColor: const Color(0xFFE74C3C),
+                      ),
+                      Text(ativo ? 'Ativo' : 'Inativo'),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -764,16 +938,26 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
             ),
             ElevatedButton(
               onPressed: () async {
+                if (materiasSelecionadas.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Selecione pelo menos uma matéria'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+
                 await FirebaseFirestore.instance
                     .collection('usuarios')
                     .doc(id)
                     .update({
-                      'nome': nomeCtrl.text,
-                      'cpf': cpfCtrl.text,
-                      'email': emailCtrl.text,
-                      'disciplina': disciplinaCtrl.text,
-                      'ativo': ativo,
-                    });
+                  'nome': nomeCtrl.text,
+                  'cpf': cpfCtrl.text,
+                  'email': emailCtrl.text,
+                  'materias': materiasSelecionadas.toList(),
+                  'ativo': ativo,
+                });
                 if (context.mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(

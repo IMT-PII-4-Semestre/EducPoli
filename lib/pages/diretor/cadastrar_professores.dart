@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/materias_service.dart';
 
 class CadastrarProfessor extends StatefulWidget {
   const CadastrarProfessor({super.key});
@@ -18,21 +19,6 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
   bool _carregando = false;
 
   // Multi-select de matérias
-  List<String> _materiasDisponiveis = [
-    'Matemática',
-    'Português',
-    'História',
-    'Geografia',
-    'Ciências',
-    'Inglês',
-    'Educação Física',
-    'Artes',
-    'Física',
-    'Química',
-    'Biologia',
-    'Filosofia',
-    'Sociologia',
-  ];
   Set<String> _materiasSelecionadas = {};
 
   // Validador de CPF
@@ -233,26 +219,51 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
               const SizedBox(height: 12),
               SizedBox(
                 height: 150,
-                child: ListView.builder(
-                  itemCount: _materiasDisponiveis.length,
-                  itemBuilder: (context, index) {
-                    final materia = _materiasDisponiveis[index];
-                    final selecionada = _materiasSelecionadas.contains(materia);
+                child: FutureBuilder<List<String>>(
+                  future: MateriasService.obterMateriasDisponiveis(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                    return CheckboxListTile(
-                      value: selecionada,
-                      onChanged: (value) {
-                        setState(() {
-                          if (value == true) {
-                            _materiasSelecionadas.add(materia);
-                          } else {
-                            _materiasSelecionadas.remove(materia);
-                          }
-                        });
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                            'Erro ao carregar matérias: ${snapshot.error}'),
+                      );
+                    }
+
+                    final materias = snapshot.data ?? [];
+
+                    if (materias.isEmpty) {
+                      return const Center(
+                        child: Text('Nenhuma matéria disponível'),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: materias.length,
+                      itemBuilder: (context, index) {
+                        final materia = materias[index];
+                        final selecionada =
+                            _materiasSelecionadas.contains(materia);
+
+                        return CheckboxListTile(
+                          value: selecionada,
+                          onChanged: (value) {
+                            setState(() {
+                              if (value == true) {
+                                _materiasSelecionadas.add(materia);
+                              } else {
+                                _materiasSelecionadas.remove(materia);
+                              }
+                            });
+                          },
+                          title: Text(materia),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                        );
                       },
-                      title: Text(materia),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
                     );
                   },
                 ),
