@@ -1,10 +1,12 @@
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 
 const Color primaryBlue = Color(0xFF7DD3FC); 
 const Color contentRowColor = Color(0xFFF0F0F0); 
+
+// Adicionando nossa altura padrão
+const double _kAppBarHeight = 80.0;
 
 class DetalhesMateriaAluno extends StatelessWidget {
   final String materiaId;
@@ -16,6 +18,7 @@ class DetalhesMateriaAluno extends StatelessWidget {
     required this.nomeMateria,
   });
 
+  // --- LÓGICA INTERNA (INTACTA) ---
   IconData _getIconForType(String tipo) {
     switch (tipo) {
       case 'pasta':
@@ -30,7 +33,6 @@ class DetalhesMateriaAluno extends StatelessWidget {
     }
   }
   
-  // Função de Abertura de Link 
   Future<void> _abrirMaterial(BuildContext context, String aulaId, String materialId) async {
     try {
       final materialDoc = await FirebaseFirestore.instance
@@ -66,40 +68,48 @@ class DetalhesMateriaAluno extends StatelessWidget {
       }
     }
   }
+  // --- FIM DA LÓGICA INTERNA ---
 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60.0),
-        child: AppBar(
-          automaticallyImplyLeading: false, 
-          backgroundColor: primaryBlue,
-          foregroundColor: Colors.black,
-          
-          // ÍCONE DE SETA PARA VOLTAR
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pop(context); 
-            },
-          ),
-          
-          title: Text(
-            nomeMateria,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-          ),
-          centerTitle: true,
-          actions: const [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Icon(Icons.account_circle, size: 32),
-            ),
-          ],
+      
+      // --- APP BAR ATUALIZADA ---
+      appBar: AppBar(
+        toolbarHeight: _kAppBarHeight, // 1. Altura padronizada
+        automaticallyImplyLeading: false, 
+        backgroundColor: primaryBlue,
+        elevation: 0,
+        
+        // 2. Ícones brancos
+        iconTheme: const IconThemeData(color: Colors.white), 
+        
+        // ÍCONE DE SETA PARA VOLTAR
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back), // Cor herdada do iconTheme
+          onPressed: () {
+            Navigator.pop(context); 
+          },
         ),
+        
+        // 2. Título com fonte branca
+        title: Text(
+          nomeMateria,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 24, 
+            color: Colors.white, // Cor da letra alterada
+            fontFamily: 'Inter',
+          ),
+        ),
+        centerTitle: true,
+        
+        // 3. Ícone de pessoa removido
+        actions: [], 
       ),
       
+      // O 'body' permanece exatamente igual, sem alteração na lógica
       body: _buildMateriaContent(context),
     );
   }
