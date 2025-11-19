@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/constants/cores.dart';
-import '../widgets/botao_customizados.dart';
 import '../widgets/campo_texto.dart';
 import '../services/autenticacao.dart';
 import '../models/usuarios.dart';
@@ -35,7 +34,7 @@ class _TelaLoginState extends State<TelaLogin> {
               Color(0xFFCD853F), // Sandy brown
               Color(0xFF8B4513), // Saddle brown
               Color(0xFF2F4F4F), // Dark slate gray
-              Color(0xFF008B8B), // Dark cyan
+              Color(0xFF1E90FF), // Azul mais vibrante
             ],
             stops: [0.0, 0.25, 0.5, 0.75, 1.0],
           ),
@@ -147,45 +146,57 @@ class _TelaLoginState extends State<TelaLogin> {
   // Widget do Logo (reutilizável)
   Widget _buildLogo({required double size}) {
     return Container(
-      width: size * 1.5,
-      height: size * 1.5,
+      width: size * 1.8,
+      height: size * 1.8,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
       child: Stack(
+        alignment: Alignment.center,
         children: [
-          // Parte de trás do cubo
+          // Cubo 3D com efeito de profundidade
           Positioned(
-            top: size * 0.125,
-            left: size * 0.125,
+            top: size * 0.15,
+            left: size * 0.15,
             child: Container(
-              width: size,
-              height: size,
+              width: size * 1.3,
+              height: size * 1.3,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(8),
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
-          // Parte da frente do cubo
+          // Parte central do cubo
           Positioned(
-            top: 0,
-            left: 0,
+            top: size * 0.075,
+            left: size * 0.075,
             child: Container(
-              width: size,
-              height: size,
+              width: size * 1.3,
+              height: size * 1.3,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(4, 4),
-                  ),
-                ],
+                color: Colors.white.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(12),
               ),
+            ),
+          ),
+          // Parte frontal do cubo
+          Container(
+            width: size * 1.3,
+            height: size * 1.3,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 15,
+                  offset: const Offset(5, 5),
+                ),
+              ],
+            ),
+            child: Center(
               child: Icon(
                 Icons.school,
-                size: size * 0.5,
+                size: size * 0.7,
                 color: const Color(0xFF8B4513),
               ),
             ),
@@ -198,13 +209,24 @@ class _TelaLoginState extends State<TelaLogin> {
   // Card de Login (reutilizável)
   Widget _buildLoginCard({required double maxWidth}) {
     return Card(
-      elevation: 20,
-      shadowColor: Colors.black.withOpacity(0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 24,
+      shadowColor: Colors.black.withOpacity(0.4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
         width: maxWidth,
         constraints: BoxConstraints(maxWidth: maxWidth),
-        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withOpacity(0.95),
+              Colors.white.withOpacity(0.85),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(40),
         child: Form(
           key: _formKey,
           child: Column(
@@ -213,12 +235,13 @@ class _TelaLoginState extends State<TelaLogin> {
               const Text(
                 'Login',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
+                  color: Color(0xFF1A1A1A),
+                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
 
               // Campo email/login
               CampoTexto(
@@ -232,7 +255,7 @@ class _TelaLoginState extends State<TelaLogin> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Campo senha
               CampoTexto(
@@ -241,7 +264,8 @@ class _TelaLoginState extends State<TelaLogin> {
                 obscureText: _ocultarSenha,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _ocultarSenha ? Icons.visibility : Icons.visibility_off,
+                    _ocultarSenha ? Icons.visibility_off : Icons.visibility,
+                    color: const Color(0xFF666666),
                   ),
                   onPressed: () {
                     setState(() {
@@ -256,28 +280,64 @@ class _TelaLoginState extends State<TelaLogin> {
                   return null;
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
 
               // Esqueceu senha
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {},
+                  style: TextButton.styleFrom(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
                   child: const Text(
                     'Esqueceu a senha?',
-                    style: TextStyle(color: Color(0xFF3498DB), fontSize: 14),
+                    style: TextStyle(
+                      color: Color(0xFF1E90FF),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
 
               // Botão login
               SizedBox(
                 width: double.infinity,
-                child: BotaoCustomizado(
-                  texto: 'Entrar',
+                height: 50,
+                child: ElevatedButton(
                   onPressed: _carregando ? null : _fazerLogin,
-                  carregando: _carregando,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE91E63),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        const Color(0xFFE91E63).withOpacity(0.6),
+                    elevation: 4,
+                    shadowColor: const Color(0xFFE91E63).withOpacity(0.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _carregando
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                 ),
               ),
             ],

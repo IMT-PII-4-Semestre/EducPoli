@@ -1,121 +1,139 @@
 import 'package:flutter/material.dart';
-import '../services/autenticacao.dart';
-import '../widgets/responsive_layout.dart';
+import '../widgets/layout_base.dart';
+import '../core/config/menu_config.dart';
 
-/// Botão reutilizável para voltar para a área do aluno.
-/// Coloque este widget em qualquer tela para garantir o mesmo comportamento.
-class BackToAlunoAreaButton extends StatelessWidget {
-  final String route;
-  final String label;
-  final IconData icon;
-
-  const BackToAlunoAreaButton({
-    super.key,
-    this.route = '/aluno',
-    this.label = 'Voltar para o menu',
-    this.icon = Icons.home,
-  });
+class DashboardAluno extends StatelessWidget {
+  const DashboardAluno({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return FloatingActionButton.extended(
-      onPressed: () {
-        Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => false);
-      },
-      icon: Icon(icon),
-      label: Text(label),
+    return LayoutBase(
+      titulo: 'Área do Aluno',
+      corPrincipal: MenuConfig.corAluno,
+      itensMenu: MenuConfig.menuAluno,
+      itemSelecionadoId: 'home',
+      breadcrumbs: const [
+        Breadcrumb(texto: 'Início', isAtivo: true),
+      ],
+      conteudo: _buildConteudo(context),
     );
   }
-}
 
-class DashboardAluno extends StatefulWidget {
-  const DashboardAluno({super.key});
+  Widget _buildConteudo(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
-  static const menuItems = [
-    DashboardMenuItem(
-      title: 'Matérias',
-      icon: Icons.book,
-      route: '/aluno/materias',
-    ),
-    DashboardMenuItem(
-      title: 'Mensagem',
-      icon: Icons.message,
-      route: '/aluno/mensagem',
-    ),
-    DashboardMenuItem(
-      title: 'Notas',
-      icon: Icons.assignment,
-      route: '/aluno/notas',
-    ),
-  ];
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: isMobile ? _buildMobileGrid(context) : _buildDesktopGrid(context),
+    );
+  }
 
-  @override
-  State<DashboardAluno> createState() => _DashboardAlunoState();
-}
+  Widget _buildMobileGrid(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      children: _buildCards(context),
+    );
+  }
 
-class _DashboardAlunoState extends State<DashboardAluno> {
-  OverlayEntry? _overlayEntry;
-
-  OverlayEntry _createOverlayEntry() {
-    return OverlayEntry(
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: BackToAlunoAreaButton(
-              route: '/aluno',
-              label: 'Voltar para o menu',
-              icon: Icons.menu_book,
-            ),
-          ),
-        ),
+  Widget _buildDesktopGrid(BuildContext context) {
+    return Center(
+      child: Wrap(
+        spacing: 32,
+        runSpacing: 32,
+        alignment: WrapAlignment.center,
+        children: _buildCards(context),
       ),
     );
   }
 
-  void _insertOverlayIfNeeded() {
-    if (_overlayEntry != null) return;
-    final overlay = Overlay.of(context);
-    if (overlay == null) return;
-    _overlayEntry = _createOverlayEntry();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _overlayEntry != null) overlay.insert(_overlayEntry!);
-    });
+  List<Widget> _buildCards(BuildContext context) {
+    final opcoes = [
+      {
+        'titulo': 'Matérias',
+        'icone': Icons.book_outlined,
+        'rota': '/aluno/materias',
+        'cor': const Color(0xFF3498DB),
+      },
+      {
+        'titulo': 'Mensagens',
+        'icone': Icons.message_outlined,
+        'rota': '/aluno/mensagem',
+        'cor': const Color(0xFF9B59B6),
+      },
+      {
+        'titulo': 'Boletim',
+        'icone': Icons.assessment_outlined,
+        'descricao': 'Notas e desempenho completo',
+        'rota': '/aluno/boletim',
+        'cor': const Color(0xFF27AE60),
+      },
+    ];
+
+    return opcoes.map((opcao) {
+      return _buildCardOpcao(
+        context,
+        titulo: opcao['titulo'] as String,
+        icone: opcao['icone'] as IconData,
+        rota: opcao['rota'] as String,
+        cor: opcao['cor'] as Color,
+      );
+    }).toList();
   }
 
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _insertOverlayIfNeeded();
-  }
-
-  @override
-  void dispose() {
-    _removeOverlay();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // Removido floatingActionButton do Scaffold para que o botão fique fornecido
-      // pelo Overlay (assim permanece visível em todas as telas do dashboard).
-      body: ResponsiveDashboard(
-        title: 'Área do Aluno',
-        headerColor: const Color(0xFF7DD3FC),
-        menuItems: DashboardAluno.menuItems,
-        onLogout: () async {
-          await ServicoAutenticacao().sair();
-          if (context.mounted) {
-            Navigator.pushReplacementNamed(context, '/login');
-          }
-        },
+  Widget _buildCardOpcao(
+    BuildContext context, {
+    required String titulo,
+    required IconData icone,
+    required String rota,
+    required Color cor,
+  }) {
+    return SizedBox(
+      width: 240,
+      height: 200,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: InkWell(
+          onTap: () {
+            Navigator.pushReplacementNamed(context, rota);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: cor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    icone,
+                    size: 48,
+                    color: cor,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  titulo,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

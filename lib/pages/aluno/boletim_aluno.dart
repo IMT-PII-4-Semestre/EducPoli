@@ -1,59 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/layout_base.dart';
+import '../../core/config/menu_config.dart';
 
-class BoletimAluno extends StatefulWidget {
+class BoletimAluno extends StatelessWidget {
   const BoletimAluno({super.key});
 
   @override
-  State<BoletimAluno> createState() => _BoletimAlunoState();
-}
-
-class _BoletimAlunoState extends State<BoletimAluno> {
-  Map<String, dynamic>? _dadosAluno;
-  bool _carregando = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _carregarDadosAluno();
-  }
-
-  Future<void> _carregarDadosAluno() async {
-    setState(() => _carregando = true);
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-
-      final doc = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(uid)
-          .get();
-
-      if (doc.exists) {
-        setState(() {
-          _dadosAluno = doc.data();
-          _dadosAluno!['id'] = doc.id;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar dados: $e')),
-        );
-      }
-    } finally {
-      setState(() => _carregando = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    return LayoutBase(
+      titulo: 'Boletim',
+      corPrincipal: MenuConfig.corAluno,
+      itensMenu: MenuConfig.menuAluno,
+      itemSelecionadoId: 'boletim',
+      breadcrumbs: const [
+        Breadcrumb(texto: 'Início'),
+        Breadcrumb(texto: 'Boletim', isAtivo: true),
+      ],
+      conteudo: _buildConteudo(context),
+    );
+  }
+
+  Widget _buildConteudo(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
-    if (_carregando) {
-      return const Center(child: CircularProgressIndicator());
+    if (uid == null) {
+      return const Center(
+        child: Text('Erro: usuário não autenticado'),
+      );
     }
 
     return StreamBuilder<DocumentSnapshot>(
@@ -61,9 +36,12 @@ class _BoletimAlunoState extends State<BoletimAluno> {
           FirebaseFirestore.instance.collection('notas').doc(uid).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Erro: ${snapshot.error}'));
+          return Center(
+            child: Text('Erro ao carregar boletim: ${snapshot.error}'),
+          );
         }
-        if (!snapshot.hasData) {
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -79,30 +57,51 @@ class _BoletimAlunoState extends State<BoletimAluno> {
               children: [
                 Icon(Icons.assignment, size: 100, color: Colors.grey[300]),
                 const SizedBox(height: 20),
-                Text(
+                const Text(
                   'Nenhuma nota lançada ainda',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
               ],
             ),
           );
         }
 
+        final isMobile = MediaQuery.of(context).size.width < 600;
+
         return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Título
+              Text(
+                'Boletim Completo',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Desempenho detalhado por matéria',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 32),
+
               ...notas.entries.map((entry) {
                 if (entry.key.contains('media_') || entry.key == 'situacao') {
                   return const SizedBox.shrink();
                 }
-                return _buildTabelaMateriaBoletim(
+                return _buildMateriaCard(
                   entry.key,
                   entry.value as Map<String, dynamic>,
                   isMobile,
                 );
-              }),
-              const SizedBox(height: 40),
+              }).toList(),
             ],
           ),
         );
@@ -110,7 +109,7 @@ class _BoletimAlunoState extends State<BoletimAluno> {
     );
   }
 
-  Widget _buildTabelaMateriaBoletim(
+  Widget _buildMateriaCard(
     String materia,
     Map<String, dynamic> dados,
     bool isMobile,
@@ -118,49 +117,94 @@ class _BoletimAlunoState extends State<BoletimAluno> {
     final mediaFinal = dados['media_final'] ?? 0.0;
     final situacao = dados['situacao'] ?? 'Pendente';
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header matéria
+          // Header da matéria
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: _getCorMateria(materia),
+              color: _getCorMateria(materia).withOpacity(0.1),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  materia,
-                  style: const TextStyle(
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _getCorMateria(materia),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.book_outlined,
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        materia,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            'Média Final: ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            mediaFinal.toStringAsFixed(1),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _getCorNota(mediaFinal),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    color: _getCorSituacao(situacao).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: _getCorSituacao(situacao),
+                      width: 2,
+                    ),
                   ),
                   child: Text(
-                    mediaFinal.toStringAsFixed(1),
+                    situacao,
                     style: TextStyle(
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: _getCorNota(mediaFinal),
+                      color: _getCorSituacao(situacao),
                     ),
                   ),
                 ),
@@ -168,157 +212,249 @@ class _BoletimAlunoState extends State<BoletimAluno> {
             ),
           ),
 
-          // Tabela de bimestres
-          if (isMobile)
-            _buildTabelaMobileBoletim(dados)
-          else
-            _buildTabelaDesktopBoletim(dados),
-
-          // Footer com situação
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(8),
-                bottomRight: Radius.circular(8),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Situação:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getCorSituacao(situacao),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    situacao,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          // Tabela de notas detalhada
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: isMobile
+                ? _buildTabelaMobile(dados)
+                : _buildTabelaDesktop(dados),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTabelaDesktopBoletim(Map<String, dynamic> dados) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Table(
-          border: TableBorder(
-            horizontalInside: BorderSide(color: Colors.grey[200]!),
-            verticalInside: BorderSide(color: Colors.grey[200]!),
-          ),
-          columnWidths: {
-            0: const FixedColumnWidth(100),
-            1: const FixedColumnWidth(80),
-            2: const FixedColumnWidth(80),
-            3: const FixedColumnWidth(80),
-            4: const FixedColumnWidth(80),
-            5: const FixedColumnWidth(80),
-            6: const FixedColumnWidth(80),
-          },
+  Widget _buildTabelaDesktop(Map<String, dynamic> dados) {
+    return Table(
+      border: TableBorder.all(color: Colors.grey[300]!),
+      columnWidths: const {
+        0: FlexColumnWidth(2),
+        1: FlexColumnWidth(1.5),
+        2: FlexColumnWidth(1.5),
+        3: FlexColumnWidth(1.5),
+        4: FlexColumnWidth(1.5),
+        5: FlexColumnWidth(1.5),
+        6: FlexColumnWidth(1.5),
+      },
+      children: [
+        // Header principal
+        TableRow(
+          decoration: BoxDecoration(color: Colors.grey[100]),
           children: [
-            // Header
-            TableRow(
-              decoration: BoxDecoration(color: Colors.grey[100]),
-              children: [
-                _buildCelulaHeader('Bimestre'),
-                _buildCelulaHeader('Prova'),
-                _buildCelulaHeader('Trabalho'),
-                _buildCelulaHeader('Média'),
-                _buildCelulaHeader('Prova'),
-                _buildCelulaHeader('Trabalho'),
-                _buildCelulaHeader('Média'),
-              ],
-            ),
-            // Dados bimestres
-            for (int i = 1; i <= 4; i++)
-              _buildLinhaBoletim(
-                '${i}º Bim',
-                dados['bim$i'] as Map<String, dynamic>? ?? {},
-              ),
+            _buildCelulaHeader(''),
+            _buildCelulaHeader('1º Bimestre'),
+            _buildCelulaHeader('2º Bimestre'),
+            _buildCelulaHeader('3º Bimestre'),
+            _buildCelulaHeader('4º Bimestre'),
+            _buildCelulaHeader('Média Final'),
+            _buildCelulaHeader('Situação'),
           ],
         ),
-      ),
+        // Linha Prova
+        _buildLinhaDetalhada(
+          'Prova',
+          dados,
+          (bim) => bim['prova'],
+        ),
+        // Linha Trabalho
+        _buildLinhaDetalhada(
+          'Trabalho',
+          dados,
+          (bim) => bim['trabalho'],
+        ),
+        // Linha Média
+        _buildLinhaDetalhada(
+          'Média',
+          dados,
+          (bim) => bim['media'],
+        ),
+      ],
     );
   }
 
-  TableRow _buildLinhaBoletim(
+  TableRow _buildLinhaDetalhada(
     String label,
-    Map<String, dynamic> bimData,
+    Map<String, dynamic> dados,
+    dynamic Function(Map<String, dynamic>) getValue,
   ) {
-    final prova = bimData['prova'];
-    final trabalho = bimData['trabalho'];
-    final media = bimData['media'];
-
     return TableRow(
       children: [
         _buildCelula(label, true),
-        _buildCelula(prova?.toStringAsFixed(1) ?? '-', false),
-        _buildCelula(trabalho?.toStringAsFixed(1) ?? '-', false),
-        _buildCelula(media?.toStringAsFixed(1) ?? '-', false),
-        _buildCelula(prova?.toStringAsFixed(1) ?? '-', false),
-        _buildCelula(trabalho?.toStringAsFixed(1) ?? '-', false),
-        _buildCelula(media?.toStringAsFixed(1) ?? '-', false),
+        for (int i = 1; i <= 4; i++)
+          _buildCelula(
+            dados.containsKey('bimestre_$i')
+                ? (getValue(dados['bimestre_$i'])?.toStringAsFixed(1) ?? '-')
+                : '-',
+            false,
+          ),
+        label == 'Média'
+            ? _buildCelulaMedia(
+                dados['media_final']?.toStringAsFixed(1) ?? '-',
+                dados['media_final'],
+              )
+            : _buildCelula('-', false),
+        label == 'Média'
+            ? _buildCelulaSituacao(dados['situacao'] ?? 'Pendente')
+            : _buildCelula('-', false),
       ],
     );
   }
 
   Widget _buildCelulaHeader(String texto) {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       child: Text(
         texto,
         textAlign: TextAlign.center,
         style: const TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 11,
+          fontSize: 12,
         ),
       ),
     );
   }
 
-  Widget _buildCelula(String texto, bool isHeader) {
+  Widget _buildCelula(String texto, bool isBold) {
     return Padding(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       child: Text(
         texto,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-          fontSize: 11,
+          fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 12,
         ),
       ),
     );
   }
 
-  Widget _buildTabelaMobileBoletim(Map<String, dynamic> dados) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          for (int i = 1; i <= 4; i++)
-            _buildCardBimestre(
-                i, dados['bim$i'] as Map<String, dynamic>? ?? {}),
-        ],
+  Widget _buildCelulaMedia(String texto, dynamic valorNumerico) {
+    return Container(
+      margin: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: _getCorNota(valorNumerico).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
       ),
+      child: Text(
+        texto,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          color: _getCorNota(valorNumerico),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCelulaSituacao(String situacao) {
+    return Container(
+      margin: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: _getCorSituacao(situacao).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _getCorSituacao(situacao),
+          width: 1.5,
+        ),
+      ),
+      child: Text(
+        situacao,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          color: _getCorSituacao(situacao),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabelaMobile(Map<String, dynamic> dados) {
+    return Column(
+      children: [
+        for (int i = 1; i <= 4; i++)
+          if (dados.containsKey('bimestre_$i'))
+            _buildCardBimestre(i, dados['bimestre_$i'] as Map<String, dynamic>),
+
+        // Card de resumo final
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Column(
+                children: [
+                  const Text(
+                    'Média Final',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    dados['media_final']?.toStringAsFixed(1) ?? '-',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _getCorNota(dados['media_final']),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: Colors.grey[300],
+              ),
+              Column(
+                children: [
+                  const Text(
+                    'Situação',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getCorSituacao(dados['situacao'] ?? 'Pendente')
+                          .withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _getCorSituacao(dados['situacao'] ?? 'Pendente'),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      dados['situacao'] ?? 'Pendente',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: _getCorSituacao(dados['situacao'] ?? 'Pendente'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -327,63 +463,42 @@ class _BoletimAlunoState extends State<BoletimAluno> {
     final trabalho = bimData['trabalho'];
     final media = bimData['media'];
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: Colors.grey[200]!),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${numero}º Bimestre',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getCorNota(media),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    media?.toStringAsFixed(1) ?? '-',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$numeroº Bimestre',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildItemBimestre('Prova', prova?.toStringAsFixed(1) ?? '-'),
-                _buildItemBimestre(
-                    'Trabalho', trabalho?.toStringAsFixed(1) ?? '-'),
-                _buildItemBimestre('Média', media?.toStringAsFixed(1) ?? '-'),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildItemBimestre(
+                  'Prova', prova?.toStringAsFixed(1) ?? '-', prova),
+              _buildItemBimestre(
+                  'Trabalho', trabalho?.toStringAsFixed(1) ?? '-', trabalho),
+              _buildItemBimestre(
+                  'Média', media?.toStringAsFixed(1) ?? '-', media),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildItemBimestre(String label, String valor) {
+  Widget _buildItemBimestre(String label, String valor, dynamic nota) {
     return Column(
       children: [
         Text(
@@ -393,9 +508,10 @@ class _BoletimAlunoState extends State<BoletimAluno> {
         const SizedBox(height: 4),
         Text(
           valor,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 16,
+            color: _getCorNota(nota),
           ),
         ),
       ],

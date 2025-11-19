@@ -15,7 +15,6 @@ import 'pages/dashboard_aluno.dart';
 import 'pages/dashboard_professor.dart';
 import 'pages/dashboard_diretor.dart';
 import 'pages/aluno/mensagem_aluno.dart';
-import 'pages/aluno/notas_aluno.dart';
 import 'pages/professor/materias_professor.dart';
 import 'pages/professor/notas_professor.dart';
 import 'services/auth_guard.dart';
@@ -54,10 +53,14 @@ class MeuApp extends StatelessWidget {
         '/dashboard-professor': (context) => const DashboardProfessor(),
         '/dashboard-diretor': (context) => const DashboardDiretor(),
 
+        // Rotas alternativas para os dashboards (usadas pelo menu "Início")
+        '/aluno': (context) => const DashboardAluno(),
+        '/professor': (context) => const DashboardProfessor(),
+        '/diretor': (context) => const DashboardDiretor(),
+
         // Rotas do Aluno (apenas visualização)
         '/aluno/materias': (context) => const MateriasAluno(),
         '/aluno/mensagem': (context) => const MensagemAluno(),
-        '/aluno/notas': (context) => const NotasAluno(),
         '/aluno/boletim': (context) => const BoletimAluno(),
 
         // Rotas do Professor (com permissões de edição)
