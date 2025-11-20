@@ -70,36 +70,9 @@ class _MateriasProfessorState extends State<MateriasProfessor> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
-      children: [
-        // Botão adicionar no topo
-        Container(
-          padding: const EdgeInsets.all(24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _mostrarDialogAdicionarMateria(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Nova Matéria'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: MenuConfig.corProfessor,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Lista de matérias
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _buildListaMaterias(),
-          ),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: _buildListaMaterias(),
     );
   }
 
@@ -203,55 +176,17 @@ class _MateriasProfessorState extends State<MateriasProfessor> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: MenuConfig.corProfessor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.book,
-                      color: MenuConfig.corProfessor,
-                      size: 28,
-                    ),
-                  ),
-                  PopupMenuButton(
-                    icon: const Icon(Icons.more_vert),
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'editar',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Editar'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'excluir',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Excluir',
-                                style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'editar') {
-                        _editarMateria(context, id, materia);
-                      } else if (value == 'excluir') {
-                        _excluirMateria(context, id, materiaNome);
-                      }
-                    },
-                  ),
-                ],
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: MenuConfig.corProfessor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.book,
+                  color: MenuConfig.corProfessor,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -312,208 +247,6 @@ class _MateriasProfessorState extends State<MateriasProfessor> {
             ),
           );
         },
-        trailing: PopupMenuButton(
-          icon: const Icon(Icons.more_vert),
-          itemBuilder: (context) => [
-            const PopupMenuItem(value: 'editar', child: Text('Editar')),
-            const PopupMenuItem(
-              value: 'excluir',
-              child: Text('Excluir', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-          onSelected: (value) {
-            if (value == 'editar') {
-              _editarMateria(context, id, materia);
-            } else if (value == 'excluir') {
-              _excluirMateria(context, id, materiaNome);
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  void _mostrarDialogAdicionarMateria(BuildContext context) {
-    final nomeController = TextEditingController();
-    final descricaoController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Adicionar Matéria'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nomeController,
-              decoration: const InputDecoration(labelText: 'Nome da Matéria'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descricaoController,
-              decoration: const InputDecoration(labelText: 'Descrição'),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nomeController.text.isNotEmpty) {
-                final nomeMateria = nomeController.text.trim();
-
-                await FirebaseFirestore.instance.collection('materias').add({
-                  'nome': nomeMateria,
-                  'descricao': descricaoController.text.trim(),
-                  'criadoEm': DateTime.now(),
-                });
-
-                final uid = _auth.currentUser?.uid;
-                if (uid != null) {
-                  await FirebaseFirestore.instance
-                      .collection('usuarios')
-                      .doc(uid)
-                      .update({
-                    'materias': FieldValue.arrayUnion([nomeMateria])
-                  });
-                  setState(() {
-                    _minhasMaterias.add(nomeMateria);
-                  });
-                }
-
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: MenuConfig.corProfessor),
-            child:
-                const Text('Adicionar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editarMateria(
-      BuildContext context, String id, Map<String, dynamic> materia) {
-    final nomeController = TextEditingController(text: materia['nome']);
-    final descricaoController =
-        TextEditingController(text: materia['descricao']);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Editar Matéria'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nomeController,
-              decoration: const InputDecoration(
-                labelText: 'Nome (Cuidado ao alterar)',
-                helperText: 'Alterar o nome afeta o perfil',
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descricaoController,
-              decoration: const InputDecoration(labelText: 'Descrição'),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final novoNome = nomeController.text.trim();
-              final antigoNome = materia['nome'];
-
-              await FirebaseFirestore.instance
-                  .collection('materias')
-                  .doc(id)
-                  .update({
-                'nome': novoNome,
-                'descricao': descricaoController.text.trim(),
-              });
-
-              if (novoNome != antigoNome) {
-                final uid = _auth.currentUser?.uid;
-                if (uid != null) {
-                  await FirebaseFirestore.instance
-                      .collection('usuarios')
-                      .doc(uid)
-                      .update({
-                    'materias': FieldValue.arrayRemove([antigoNome])
-                  });
-                  await FirebaseFirestore.instance
-                      .collection('usuarios')
-                      .doc(uid)
-                      .update({
-                    'materias': FieldValue.arrayUnion([novoNome])
-                  });
-                  setState(() {
-                    _minhasMaterias.remove(antigoNome);
-                    _minhasMaterias.add(novoNome);
-                  });
-                }
-              }
-
-              if (context.mounted) Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: MenuConfig.corProfessor),
-            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _excluirMateria(BuildContext context, String id, String nomeMateria) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Excluir Matéria'),
-        content: Text('Tem certeza que deseja excluir "$nomeMateria"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('materias')
-                  .doc(id)
-                  .delete();
-
-              final uid = _auth.currentUser?.uid;
-              if (uid != null) {
-                await FirebaseFirestore.instance
-                    .collection('usuarios')
-                    .doc(uid)
-                    .update({
-                  'materias': FieldValue.arrayRemove([nomeMateria])
-                });
-                setState(() {
-                  _minhasMaterias.remove(nomeMateria);
-                });
-              }
-
-              if (context.mounted) Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Excluir', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }

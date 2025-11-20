@@ -74,4 +74,13 @@ class ServicoAutenticacao {
   Future<void> sair() async {
     await _auth.signOut();
   }
+
+  // Enviar email de recuperação de senha
+  Future<void> enviarEmailRecuperacaoSenha(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw Exception('Erro ao enviar email: ${e.toString()}');
+    }
+  }
 }

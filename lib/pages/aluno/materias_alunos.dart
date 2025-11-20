@@ -63,7 +63,7 @@ class MateriasAluno extends StatelessWidget {
               crossAxisCount: isDesktop ? 3 : 1,
               crossAxisSpacing: 24,
               mainAxisSpacing: 24,
-              childAspectRatio: isDesktop ? 1.2 : 2.5,
+              childAspectRatio: isDesktop ? 1.2 : 3.5,
             ),
             itemCount: materias.length,
             itemBuilder: (context, index) {

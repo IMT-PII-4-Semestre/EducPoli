@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/layout_base.dart';
 import '../../core/config/menu_config.dart';
+import '../../services/mensagens_service.dart';
 import '../aluno/tela_chat.dart';
 
 class MensagemProfessor extends StatelessWidget {
@@ -59,7 +60,6 @@ class MensagemProfessor extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('chats')
           .where('participantes', arrayContains: currentUserId)
-          .orderBy('timestampUltimaMensagem', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -69,7 +69,21 @@ class MensagemProfessor extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final chats = snapshot.data?.docs ?? [];
+        var chats = snapshot.data?.docs ?? [];
+
+        // Ordenar por timestampUltimaMensagem no cliente
+        chats.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aTime = aData['timestampUltimaMensagem'] as Timestamp?;
+          final bTime = bData['timestampUltimaMensagem'] as Timestamp?;
+
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+
+          return bTime.compareTo(aTime);
+        });
 
         if (chats.isEmpty) {
           return Center(
@@ -159,127 +173,280 @@ class MensagemProfessor extends StatelessWidget {
   }
 
   void _mostrarDialogNovaMensagem(BuildContext context) {
+    String tipoSelecionado = 'aluno';
+    Set<String> usuariosSelecionados = {};
+    Map<String, String> mapaUsuarios = {};
+
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Iniciar Nova Conversa'),
-          content: SizedBox(
-            width: 400,
-            height: 500,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('usuarios')
-                  .where('tipo', isEqualTo: 'aluno')
-                  .orderBy('nome')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.error_outline,
-                              size: 48, color: Colors.red),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Erro ao carregar alunos',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'É necessário criar um índice no Firestore',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600]),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Verifique o terminal para o link do índice.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ],
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                usuariosSelecionados.isEmpty
+                    ? 'Iniciar Nova Conversa'
+                    : 'Selecionados: ${usuariosSelecionados.length}',
+              ),
+              content: SizedBox(
+                width: 500,
+                height: 600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Selector de tipo
+                    const Text(
+                      'Enviar mensagem para:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
                       ),
                     ),
-                  );
-                }
+                    const SizedBox(height: 12),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'aluno',
+                          label: Text('Alunos'),
+                          icon: Icon(Icons.people),
+                        ),
+                        ButtonSegment(
+                          value: 'professor',
+                          label: Text('Professores'),
+                          icon: Icon(Icons.school),
+                        ),
+                      ],
+                      selected: {tipoSelecionado},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        setState(() {
+                          tipoSelecionado = newSelection.first;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const Divider(),
+                    const SizedBox(height: 12),
+                    // Lista de usuários
+                    Expanded(
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: MensagensService.buscarUsuariosPorTipo(
+                            tipoSelecionado),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.error_outline,
+                                        size: 48, color: Colors.red),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'Erro ao carregar usuários',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'É necessário criar um índice no Firestore',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
 
-                final alunos = snapshot.data?.docs ?? [];
+                          final usuarios = snapshot.data?.docs ?? [];
+                          final currentUserId =
+                              FirebaseAuth.instance.currentUser!.uid;
 
-                if (alunos.isEmpty) {
-                  return const Center(child: Text('Nenhum aluno encontrado.'));
-                }
+                          // Filtrar o próprio usuário
+                          final usuariosFiltrados = usuarios
+                              .where((doc) => doc.id != currentUserId)
+                              .toList();
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: alunos.length,
-                  itemBuilder: (context, index) {
-                    final aluno = alunos[index].data() as Map<String, dynamic>;
-                    final alunoNome = aluno['nome'] ?? 'Aluno sem nome';
-                    final alunoId = alunos[index].id;
+                          // Ordenar por nome alfabeticamente
+                          usuariosFiltrados.sort((a, b) {
+                            final nomeA =
+                                (a.data() as Map<String, dynamic>)['nome'] ??
+                                    '';
+                            final nomeB =
+                                (b.data() as Map<String, dynamic>)['nome'] ??
+                                    '';
+                            return nomeA.compareTo(nomeB);
+                          });
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.grey[200],
-                        child: const Icon(Icons.person, color: Colors.grey),
+                          if (usuariosFiltrados.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'Nenhum ${tipoSelecionado} encontrado',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            );
+                          }
+
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: usuariosFiltrados.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final usuario = usuariosFiltrados[index].data()
+                                  as Map<String, dynamic>;
+                              final usuarioNome = usuario['nome'] ?? 'Sem nome';
+                              final usuarioId = usuariosFiltrados[index].id;
+                              final usuarioEmail = usuario['email'] ?? '';
+
+                              // Armazenar no mapa
+                              mapaUsuarios[usuarioId] = usuarioNome;
+
+                              final isSelected =
+                                  usuariosSelecionados.contains(usuarioId);
+
+                              return CheckboxListTile(
+                                value: isSelected,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      usuariosSelecionados.add(usuarioId);
+                                    } else {
+                                      usuariosSelecionados.remove(usuarioId);
+                                    }
+                                  });
+                                },
+                                secondary: CircleAvatar(
+                                  backgroundColor:
+                                      MenuConfig.corProfessor.withOpacity(0.1),
+                                  child: Text(
+                                    usuarioNome.isNotEmpty
+                                        ? usuarioNome[0].toUpperCase()
+                                        : 'U',
+                                    style: TextStyle(
+                                      color: MenuConfig.corProfessor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  usuarioNome,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Text(
+                                  usuarioEmail,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                activeColor: MenuConfig.corProfessor,
+                              );
+                            },
+                          );
+                        },
                       ),
-                      title: Text(alunoNome),
-                      subtitle: Text(aluno['email'] ?? ''),
-                      onTap: () => _criarChat(context, alunoId, alunoNome),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-          ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: usuariosSelecionados.isEmpty
+                      ? null
+                      : () => _iniciarConversasMultiplas(
+                            context,
+                            usuariosSelecionados,
+                            mapaUsuarios,
+                          ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: MenuConfig.corProfessor,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(
+                    'Iniciar ${usuariosSelecionados.length > 1 ? "Conversas" : "Conversa"}',
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Future<void> _criarChat(
-      BuildContext context, String alunoId, String alunoNome) async {
-    final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
-    final String currentUserNome =
-        FirebaseAuth.instance.currentUser?.displayName ?? "Professor";
+  Future<void> _iniciarConversasMultiplas(
+    BuildContext context,
+    Set<String> usuariosIds,
+    Map<String, String> mapaUsuarios,
+  ) async {
+    final currentUserNome =
+        FirebaseAuth.instance.currentUser?.displayName ?? 'Professor';
 
-    List<String> ids = [currentUserId, alunoId];
-    ids.sort();
-    String chatRoomId = ids.join('_');
+    try {
+      String? ultimoChatRoomId;
+      String? ultimoNome;
 
-    await FirebaseFirestore.instance.collection('chats').doc(chatRoomId).set({
-      'participantes': [currentUserId, alunoId],
-      'nomes': {
-        currentUserId: currentUserNome,
-        alunoId: alunoNome,
-      },
-      'timestampUltimaMensagem': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      for (String usuarioId in usuariosIds) {
+        final nome = mapaUsuarios[usuarioId] ?? 'Usuário';
 
-    if (context.mounted) {
-      Navigator.pop(context);
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TelaChat(
-            chatRoomId: chatRoomId,
-            destinatarioNome: alunoNome,
-            corPrincipal: MenuConfig.corProfessor,
+        ultimoChatRoomId = await MensagensService.criarOuRecuperarChat(
+          destinatarioId: usuarioId,
+          destinatarioNome: nome,
+          currentUserNome: currentUserNome,
+        );
+        ultimoNome = nome;
+      }
+
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        // Se selecionou apenas 1, abre o chat diretamente
+        if (usuariosIds.length == 1 && ultimoChatRoomId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TelaChat(
+                chatRoomId: ultimoChatRoomId!,
+                destinatarioNome: ultimoNome!,
+                corPrincipal: MenuConfig.corProfessor,
+              ),
+            ),
+          );
+        } else {
+          // Se selecionou múltiplos, mostra mensagem de sucesso
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${usuariosIds.length} conversas iniciadas com sucesso!',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao iniciar conversas: $e'),
+            backgroundColor: Colors.red,
           ),
-        ),
-      );
+        );
+      }
     }
   }
 }

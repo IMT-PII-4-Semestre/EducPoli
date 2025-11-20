@@ -29,11 +29,17 @@ class DashboardAluno extends StatelessWidget {
   }
 
   Widget _buildMobileGrid(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      children: _buildCards(context),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: _buildCards(context).map((card) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: SizedBox(
+            height: 140,
+            child: card,
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -89,9 +95,11 @@ class DashboardAluno extends StatelessWidget {
     required String rota,
     required Color cor,
   }) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return SizedBox(
-      width: 240,
-      height: 200,
+      width: isMobile ? double.infinity : 240,
+      height: isMobile ? 140 : 200,
       child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -103,35 +111,62 @@ class DashboardAluno extends StatelessWidget {
           },
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: cor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
+            padding: EdgeInsets.all(isMobile ? 16 : 24),
+            child: isMobile
+                ? Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(isMobile ? 12 : 20),
+                        decoration: BoxDecoration(
+                          color: cor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          icone,
+                          size: isMobile ? 32 : 48,
+                          color: cor,
+                        ),
+                      ),
+                      SizedBox(width: isMobile ? 16 : 20),
+                      Expanded(
+                        child: Text(
+                          titulo,
+                          style: TextStyle(
+                            fontSize: isMobile ? 16 : 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: cor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          icone,
+                          size: 48,
+                          color: cor,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        titulo,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    icone,
-                    size: 48,
-                    color: cor,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  titulo,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
           ),
         ),
       ),

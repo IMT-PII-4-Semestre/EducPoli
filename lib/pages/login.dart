@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../core/constants/cores.dart';
 import '../widgets/campo_texto.dart';
 import '../services/autenticacao.dart';
 import '../models/usuarios.dart';
@@ -286,7 +285,7 @@ class _TelaLoginState extends State<TelaLogin> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: _mostrarDialogRecuperarSenha,
                   style: TextButton.styleFrom(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -375,12 +374,12 @@ class _TelaLoginState extends State<TelaLogin> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro no login: $e'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
+          _mostrarDialogMensagem(
+            titulo: 'Erro no Login',
+            mensagem:
+                'Email ou senha incorretos. Por favor, verifique seus dados e tente novamente.',
+            icone: Icons.error_outline,
+            cor: Colors.red,
           );
         }
       } finally {
@@ -391,6 +390,173 @@ class _TelaLoginState extends State<TelaLogin> {
         }
       }
     }
+  }
+
+  void _mostrarDialogMensagem({
+    required String titulo,
+    required String mensagem,
+    required IconData icone,
+    required Color cor,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icone,
+                size: 64,
+                color: cor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              titulo,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: cor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              mensagem,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF666666),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cor,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'OK',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarDialogRecuperarSenha() {
+    final emailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.lock_reset, color: const Color(0xFF1E90FF)),
+            const SizedBox(width: 12),
+            const Text('Recuperar Senha'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Digite seu email para receber o link de recuperação de senha:',
+              style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                prefixIcon: const Icon(Icons.email),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+
+              if (email.isEmpty) {
+                Navigator.pop(context);
+                _mostrarDialogMensagem(
+                  titulo: 'Atenção',
+                  mensagem:
+                      'Por favor, insira seu email para recuperar a senha.',
+                  icone: Icons.warning_amber_rounded,
+                  cor: Colors.orange,
+                );
+                return;
+              }
+
+              try {
+                await _servicoAuth.enviarEmailRecuperacaoSenha(email);
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  _mostrarDialogMensagem(
+                    titulo: 'Email Enviado!',
+                    mensagem:
+                        'Um link de recuperação foi enviado para $email. Verifique sua caixa de entrada e spam.',
+                    icone: Icons.check_circle_outline,
+                    cor: Colors.green,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  _mostrarDialogMensagem(
+                    titulo: 'Erro',
+                    mensagem:
+                        'Não foi possível enviar o email. Verifique se o endereço está correto e tente novamente.',
+                    icone: Icons.error_outline,
+                    cor: Colors.red,
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E90FF),
+            ),
+            child: const Text('Enviar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
