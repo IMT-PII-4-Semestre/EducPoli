@@ -103,7 +103,7 @@ class MenuLateral extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 corPrincipal,
-                corPrincipal.withOpacity(0.8),
+                corPrincipal,
               ],
             ),
           ),
