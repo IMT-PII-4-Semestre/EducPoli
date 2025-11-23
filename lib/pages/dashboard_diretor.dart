@@ -92,7 +92,7 @@ class DashboardDiretor extends StatelessWidget {
 
     return SizedBox(
       width: isMobile ? double.infinity : 240,
-      height: isMobile ? 140 : 200,
+      height: isMobile ? 140 : 220,
       child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -149,14 +149,18 @@ class DashboardDiretor extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        titulo,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[800],
+                      Flexible(
+                        child: Text(
+                          titulo,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),

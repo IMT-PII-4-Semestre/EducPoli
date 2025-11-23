@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/layout_base.dart';
@@ -527,7 +528,8 @@ class _EditorNotasAlunoState extends State<_EditorNotasAluno> {
     final notasMateria =
         notas[widget.materiaSelecionada] as Map<String, dynamic>? ?? {};
     for (int i = 1; i <= 4; i++) {
-      final bimData = notasMateria['bim$i'] as Map<String, dynamic>? ?? {};
+      final bimData =
+          notasMateria['bimestre_$i'] as Map<String, dynamic>? ?? {};
       controllers[i]!['prova']!.text = bimData['prova']?.toString() ?? '';
       controllers[i]!['trabalho']!.text = bimData['trabalho']?.toString() ?? '';
     }
@@ -535,6 +537,7 @@ class _EditorNotasAlunoState extends State<_EditorNotasAluno> {
 
   Future<void> _salvarNotas() async {
     try {
+      // Primeiro validar todos os valores
       for (int i = 1; i <= 4; i++) {
         final provaText = controllers[i]!['prova']!.text.trim();
         final trabalhoText = controllers[i]!['trabalho']!.text.trim();
@@ -543,21 +546,23 @@ class _EditorNotasAlunoState extends State<_EditorNotasAluno> {
             trabalhoText.isNotEmpty ? double.tryParse(trabalhoText) : null;
 
         if (prova != null && (prova < 0 || prova > 10)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text('Prova do ${i}º bimestre deve estar entre 0 e 10')),
-          );
+          _mostrarModalErro('Prova do ${i}º bimestre deve estar entre 0 e 10');
           return;
         }
         if (trabalho != null && (trabalho < 0 || trabalho > 10)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content:
-                    Text('Trabalho do ${i}º bimestre deve estar entre 0 e 10')),
-          );
+          _mostrarModalErro(
+              'Trabalho do ${i}º bimestre deve estar entre 0 e 10');
           return;
         }
+      }
+
+      // Se passou nas validações, salva
+      for (int i = 1; i <= 4; i++) {
+        final provaText = controllers[i]!['prova']!.text.trim();
+        final trabalhoText = controllers[i]!['trabalho']!.text.trim();
+        final prova = provaText.isNotEmpty ? double.tryParse(provaText) : null;
+        final trabalho =
+            trabalhoText.isNotEmpty ? double.tryParse(trabalhoText) : null;
 
         if (prova != null || trabalho != null) {
           await widget.notasService.salvarNotasDetalhadas(
@@ -570,21 +575,154 @@ class _EditorNotasAlunoState extends State<_EditorNotasAluno> {
         }
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notas salvas com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
+        _mostrarModalSucesso();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao salvar: $e')),
-        );
+        _mostrarModalErro('Erro ao salvar: $e');
       }
     }
+  }
+
+  void _mostrarModalErro(String mensagem) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Atenção!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                mensagem,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarModalSucesso() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.green,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Sucesso!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Notas salvas com sucesso!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Fecha o modal de sucesso
+                    Navigator.pop(context); // Fecha o editor de notas
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -659,8 +797,15 @@ class _EditorNotasAlunoState extends State<_EditorNotasAluno> {
                                 decoration: const InputDecoration(
                                   labelText: 'Prova (0-10)',
                                   border: OutlineInputBorder(),
+                                  helperText: 'Digite apenas números de 0 a 10',
                                 ),
-                                keyboardType: TextInputType.number,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d{0,2}\.?\d{0,2}')),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -670,8 +815,15 @@ class _EditorNotasAlunoState extends State<_EditorNotasAluno> {
                                 decoration: const InputDecoration(
                                   labelText: 'Trabalho (0-10)',
                                   border: OutlineInputBorder(),
+                                  helperText: 'Digite apenas números de 0 a 10',
                                 ),
-                                keyboardType: TextInputType.number,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d{0,2}\.?\d{0,2}')),
+                                ],
                               ),
                             ),
                           ],

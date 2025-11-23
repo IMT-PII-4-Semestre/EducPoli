@@ -56,14 +56,16 @@ class MateriasAluno extends StatelessWidget {
             );
           }
 
-          final isDesktop = MediaQuery.of(context).size.width > 800;
+          final largura = MediaQuery.of(context).size.width;
+          final isDesktop = largura > 800;
+          final isMobile = largura < 600;
 
           return GridView.builder(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: isDesktop ? 3 : 1,
               crossAxisSpacing: 24,
               mainAxisSpacing: 24,
-              childAspectRatio: isDesktop ? 1.2 : 3.5,
+              childAspectRatio: isMobile ? 4.5 : (isDesktop ? 2.2 : 5.0),
             ),
             itemCount: materias.length,
             itemBuilder: (context, index) {
@@ -98,6 +100,8 @@ class MateriasAluno extends StatelessWidget {
     ];
 
     final cor = cores[id.hashCode % cores.length];
+    final largura = MediaQuery.of(context).size.width;
+    final isDesktop = largura > 800;
 
     return Material(
       color: Colors.white,
@@ -117,7 +121,7 @@ class MateriasAluno extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isDesktop ? 24 : 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -125,86 +129,155 @@ class MateriasAluno extends StatelessWidget {
               width: 2,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Ícone da matéria
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: cor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.book_outlined,
-                  color: cor,
-                  size: 30,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Nome da matéria
-              Text(
-                nome,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-
-              // Descrição
-              Expanded(
-                child: Text(
-                  descricao,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Botão de acessar
-              Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Acessar',
-                        style: TextStyle(
-                          color: cor,
-                          fontWeight: FontWeight.w600,
+          child: isDesktop
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        // Ícone da matéria
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: cor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.book_outlined,
+                            color: cor,
+                            size: 24,
+                          ),
                         ),
+                        const SizedBox(width: 16),
+
+                        // Nome e descrição lado a lado
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                nome,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                descricao,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // Botão de acessar
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Acessar',
+                                style: TextStyle(
+                                  color: cor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_forward,
+                                color: cor,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    // Ícone da matéria
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: cor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward,
+                      child: Icon(
+                        Icons.book_outlined,
                         color: cor,
-                        size: 18,
+                        size: 24,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Conteúdo
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Nome da matéria
+                          Text(
+                            nome,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+
+                          // Descrição
+                          Text(
+                            descricao,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Ícone de seta
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: cor,
+                      size: 18,
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );

@@ -19,9 +19,13 @@ class _CadastrarAlunoState extends State<CadastrarAluno> {
   final _emailController = TextEditingController();
   final _raController = TextEditingController();
   final _senhaController = TextEditingController();
+  final _novaTurmaController = TextEditingController();
+  final _serieController = TextEditingController();
   final TurmaService _turmaService = TurmaService();
   String _turmaSelecionada = 'Selecione';
+  String _turnoSelecionado = 'Manhã';
   bool _carregando = false;
+  bool _criandoNovaTurma = false;
 
   @override
   Widget build(BuildContext context) {
@@ -110,23 +114,76 @@ class _CadastrarAlunoState extends State<CadastrarAluno> {
                 StreamBuilder<List<Turma>>(
                   stream: _turmaService.buscarTurmasAtivas(),
                   builder: (context, snapshot) {
-                    List<String> turmas = ['Selecione'];
+                    List<String> turmas = ['Selecione', '+ Criar Nova Turma'];
                     if (snapshot.hasData) {
-                      turmas.addAll(snapshot.data!.map((t) => t.nome));
+                      turmas.insertAll(1, snapshot.data!.map((t) => t.nome));
                     }
-                    return DropdownButtonFormField<String>(
-                      value: _turmaSelecionada,
-                      decoration: const InputDecoration(
-                        labelText: 'Turma',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.class_),
-                      ),
-                      items: turmas
-                          .map(
-                              (t) => DropdownMenuItem(value: t, child: Text(t)))
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() => _turmaSelecionada = v ?? 'Selecione'),
+                    return Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: _turmaSelecionada,
+                          decoration: const InputDecoration(
+                            labelText: 'Turma',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.class_),
+                          ),
+                          items: turmas
+                              .map((t) =>
+                                  DropdownMenuItem(value: t, child: Text(t)))
+                              .toList(),
+                          onChanged: (v) {
+                            setState(() {
+                              _turmaSelecionada = v ?? 'Selecione';
+                              _criandoNovaTurma = v == '+ Criar Nova Turma';
+                              if (!_criandoNovaTurma) {
+                                _novaTurmaController.clear();
+                              }
+                            });
+                          },
+                        ),
+                        if (_criandoNovaTurma) ...[
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _novaTurmaController,
+                            decoration: const InputDecoration(
+                              labelText: 'Nome da Nova Turma',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.add_circle_outline),
+                              hintText: 'Ex: 1º Ano A',
+                            ),
+                            validator: (v) => v?.isEmpty ?? true
+                                ? 'Insira o nome da nova turma'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _serieController,
+                            decoration: const InputDecoration(
+                              labelText: 'Série',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.format_list_numbered),
+                              hintText: 'Ex: 1º Ano',
+                            ),
+                            validator: (v) =>
+                                v?.isEmpty ?? true ? 'Insira a série' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _turnoSelecionado,
+                            decoration: const InputDecoration(
+                              labelText: 'Turno',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.wb_sunny),
+                            ),
+                            items: ['Manhã', 'Tarde', 'Noite', 'Integral']
+                                .map((t) =>
+                                    DropdownMenuItem(value: t, child: Text(t)))
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _turnoSelecionado = v!),
+                          ),
+                        ],
+                      ],
                     );
                   },
                 ),
@@ -203,6 +260,23 @@ class _CadastrarAlunoState extends State<CadastrarAluno> {
     setState(() => _carregando = true);
 
     try {
+      // Se está criando nova turma, cadastrar primeiro
+      String? turmaNome;
+      if (_criandoNovaTurma) {
+        final novaTurmaNome = _novaTurmaController.text.trim();
+        await _turmaService.cadastrarTurma(Turma(
+          id: '',
+          nome: novaTurmaNome,
+          serie: _serieController.text.trim(),
+          turno: _turnoSelecionado,
+          anoLetivo: DateTime.now().year,
+          ativa: true,
+        ));
+        turmaNome = novaTurmaNome;
+      } else {
+        turmaNome = _turmaSelecionada == 'Selecione' ? null : _turmaSelecionada;
+      }
+
       final userCredential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -218,7 +292,7 @@ class _CadastrarAlunoState extends State<CadastrarAluno> {
         'nome': _nomeController.text.trim(),
         'ra': _raController.text.trim(),
         'tipo': 'aluno',
-        'turma': _turmaSelecionada == 'Selecione' ? null : _turmaSelecionada,
+        'turma': turmaNome,
         'ativo': true,
         'criadoEm': DateTime.now().toIso8601String(),
         'materias': [],
@@ -253,6 +327,8 @@ class _CadastrarAlunoState extends State<CadastrarAluno> {
     _emailController.dispose();
     _raController.dispose();
     _senhaController.dispose();
+    _novaTurmaController.dispose();
+    _serieController.dispose();
     super.dispose();
   }
 }

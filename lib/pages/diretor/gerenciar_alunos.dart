@@ -149,6 +149,44 @@ class _AlunosDiretorState extends State<AlunosDiretor> {
               setState(() => _termoBusca = value.toLowerCase()),
         ),
         const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: _statusFiltro,
+          decoration: InputDecoration(
+            labelText: 'Status',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+          items: ['Sem filtro', 'Ativo', 'Inativo']
+              .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+              .toList(),
+          onChanged: (v) => setState(() => _statusFiltro = v!),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<Turma>>(
+          stream: _turmaService.buscarTurmasAtivas(),
+          builder: (context, snapshot) {
+            List<String> turmas = ['Selecione'];
+            if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+              turmas.addAll(snapshot.data!.map((t) => t.nome).toList());
+            }
+            return DropdownButtonFormField<String>(
+              value: _turmaFiltro,
+              decoration: InputDecoration(
+                labelText: 'Turma',
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              items: turmas
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
+              onChanged: (v) => setState(() => _turmaFiltro = v!),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
         ElevatedButton.icon(
           onPressed: () => Navigator.pushReplacementNamed(
               context, '/diretor/cadastrar-aluno'),
@@ -290,18 +328,9 @@ class _AlunosDiretorState extends State<AlunosDiretor> {
           Expanded(flex: 2, child: Text(aluno['email'] ?? '-')),
           Expanded(child: Text(aluno['ra'] ?? '-')),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF5F5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFCDD2)),
-              ),
-              child: Text(
-                aluno['turma'] ?? 'Sem turma',
-                style:
-                    const TextStyle(fontSize: 12, color: MenuConfig.corDiretor),
-              ),
+            child: Text(
+              aluno['turma'] ?? 'Sem turma',
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(

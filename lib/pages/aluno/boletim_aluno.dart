@@ -123,104 +123,307 @@ class BoletimAluno extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header da matéria
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: _getCorMateria(materia).withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _getCorMateria(materia),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.book_outlined,
-                    color: Colors.white,
-                    size: 24,
+      child: Builder(
+        builder: (context) => InkWell(
+          onTap: isMobile
+              ? () => _mostrarDetalhesModal(context, materia, dados)
+              : null,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header da matéria
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: _getCorMateria(materia).withOpacity(0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        materia,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[800],
-                        ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _getCorMateria(materia),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
+                      child: const Icon(
+                        Icons.book_outlined,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Média Final: ',
+                            materia,
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
                             ),
                           ),
-                          Text(
-                            mediaFinal.toStringAsFixed(1),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: _getCorNota(mediaFinal),
-                            ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                'Média Final: ',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                mediaFinal.toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getCorNota(mediaFinal),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getCorSituacao(situacao).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _getCorSituacao(situacao),
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        situacao,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: _getCorSituacao(situacao),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getCorSituacao(situacao).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _getCorSituacao(situacao),
-                      width: 2,
+              ),
+
+              // Tabela de notas detalhada
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: isMobile
+                    ? _buildTabelaMobile(dados)
+                    : _buildTabelaDesktop(dados),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarDetalhesModal(
+      BuildContext context, String materia, Map<String, dynamic> dados) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _getCorMateria(materia),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.book_outlined,
+                      color: Colors.white,
+                      size: 24,
                     ),
                   ),
-                  child: Text(
-                    situacao,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: _getCorSituacao(situacao),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      materia,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Notas Detalhadas',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
+              ),
+              const SizedBox(height: 16),
+
+              // Detalhes de cada bimestre
+              for (int i = 1; i <= 4; i++)
+                if (dados.containsKey('bimestre_$i'))
+                  _buildBimestreDetalhado(
+                      i, dados['bimestre_$i'] as Map<String, dynamic>),
+
+              const Divider(height: 32),
+
+              // Resumo final
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _getCorNota(dados['media_final']).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _getCorNota(dados['media_final']),
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Média Final',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      dados['media_final']?.toStringAsFixed(1) ?? '-',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: _getCorNota(dados['media_final']),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _getCorSituacao(dados['situacao'] ?? 'Pendente')
+                      .withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _getCorSituacao(dados['situacao'] ?? 'Pendente'),
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  dados['situacao'] ?? 'Pendente',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _getCorSituacao(dados['situacao'] ?? 'Pendente'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBimestreDetalhado(int numero, Map<String, dynamic> bimData) {
+    final prova = bimData['prova'];
+    final trabalho = bimData['trabalho'];
+    final media = bimData['media'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${numero}º Bimestre',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
             ),
           ),
-
-          // Tabela de notas detalhada
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: isMobile
-                ? _buildTabelaMobile(dados)
-                : _buildTabelaDesktop(dados),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNotaItem(
+                    'Prova', prova?.toStringAsFixed(1) ?? '-', prova),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildNotaItem(
+                    'Trabalho', trabalho?.toStringAsFixed(1) ?? '-', trabalho),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildNotaItem(
+                    'Média', media?.toStringAsFixed(1) ?? '-', media),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotaItem(String label, String valor, dynamic nota) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          valor,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: _getCorNota(nota),
+          ),
+        ),
+      ],
     );
   }
 

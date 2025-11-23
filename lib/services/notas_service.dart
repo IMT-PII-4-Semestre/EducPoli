@@ -247,8 +247,6 @@ class NotasService {
       }
 
       // Calcular média do bimestre
-      double? mediaProva = prova;
-      double? mediaTrabalho = trabalho;
       double? mediaBimestre;
 
       if (prova != null && trabalho != null) {
@@ -260,7 +258,7 @@ class NotasService {
         mediaBimestre = double.parse(trabalho.toStringAsFixed(2));
       }
 
-      final bimKey = 'bim$bimestre';
+      final bimKey = 'bimestre_$bimestre';
 
       // Salvar no Firestore
       await FirebaseFirestore.instance.collection('notas').doc(alunoId).set({
@@ -285,7 +283,8 @@ class NotasService {
         if (notasMateria != null) {
           List<double> medias = [];
           for (int i = 1; i <= 4; i++) {
-            final bimData = notasMateria['bim$i'] as Map<String, dynamic>?;
+            final bimData =
+                notasMateria['bimestre_$i'] as Map<String, dynamic>?;
             if (bimData?['media'] != null) {
               medias.add(bimData!['media']);
             }

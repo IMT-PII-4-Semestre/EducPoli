@@ -13,7 +13,6 @@ class ProfessoresDiretor extends StatefulWidget {
 class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
   final TextEditingController _buscaController = TextEditingController();
   String _statusFiltro = 'Sem filtro';
-  String _perfilFiltro = 'Selecione';
   String _termoBusca = '';
 
   @override
@@ -85,24 +84,6 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                 .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                 .toList(),
             onChanged: (v) => setState(() => _statusFiltro = v!),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: DropdownButtonFormField<String>(
-            value: _perfilFiltro,
-            decoration: InputDecoration(
-              labelText: 'Perfil/Atribuição',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            items: ['Selecione', 'Professor', 'Coordenador']
-                .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                .toList(),
-            onChanged: (v) => setState(() => _perfilFiltro = v!),
           ),
         ),
         const SizedBox(width: 16),
@@ -184,7 +165,6 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
           final email = (data['email'] ?? '').toString().toLowerCase();
           final cpf = (data['cpf'] ?? '').toString().toLowerCase();
           final ativo = data['ativo'] ?? true;
-          final perfil = data['perfil'] ?? '';
 
           if (_termoBusca.isNotEmpty &&
               !nome.contains(_termoBusca) &&
@@ -192,8 +172,6 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
               !cpf.contains(_termoBusca)) return false;
           if (_statusFiltro == 'Ativo' && !ativo) return false;
           if (_statusFiltro == 'Inativo' && ativo) return false;
-          if (_perfilFiltro != 'Selecione' && perfil != _perfilFiltro)
-            return false;
 
           return true;
         }).toList();
@@ -297,18 +275,9 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
           ),
           Expanded(child: Text(professor['cpf'] ?? '-')),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF5F5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFCDD2)),
-              ),
-              child: Text(
-                professor['perfil'] ?? 'Professor',
-                style:
-                    const TextStyle(fontSize: 12, color: MenuConfig.corDiretor),
-              ),
+            child: Text(
+              professor['perfil'] ?? 'Professor',
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
@@ -430,6 +399,8 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
     final emailCtrl = TextEditingController(text: professor['email']);
     String perfil = professor['perfil'] ?? 'Professor';
     bool ativo = professor['ativo'] ?? true;
+    List<String> materiasSelecionadas =
+        List<String>.from(professor['materias'] ?? []);
 
     showDialog(
       context: context,
@@ -438,39 +409,104 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
           title: const Text('Editar Professor'),
           content: SizedBox(
             width: 500,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nomeCtrl,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: cpfCtrl,
-                  decoration: const InputDecoration(labelText: 'CPF'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailCtrl,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: perfil,
-                  decoration: const InputDecoration(labelText: 'Perfil'),
-                  items: ['Professor', 'Coordenador']
-                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                      .toList(),
-                  onChanged: (v) => setStateDialog(() => perfil = v!),
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  title: const Text('Ativo'),
-                  value: ativo,
-                  onChanged: (v) => setStateDialog(() => ativo = v),
-                ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nomeCtrl,
+                    decoration: const InputDecoration(labelText: 'Nome'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: cpfCtrl,
+                    decoration: const InputDecoration(labelText: 'CPF'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: perfil,
+                    decoration: const InputDecoration(labelText: 'Perfil'),
+                    items: ['Professor', 'Coordenador']
+                        .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                        .toList(),
+                    onChanged: (v) => setStateDialog(() => perfil = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: const Text('Ativo'),
+                    value: ativo,
+                    onChanged: (v) => setStateDialog(() => ativo = v),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Matérias',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('materias')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const CircularProgressIndicator();
+                      }
+
+                      final materias = snapshot.data!.docs;
+
+                      if (materias.isEmpty) {
+                        return const Text('Nenhuma matéria cadastrada');
+                      }
+
+                      return Container(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: materias.length,
+                          itemBuilder: (context, index) {
+                            final materia =
+                                materias[index].data() as Map<String, dynamic>;
+                            final materiaNome = materia['nome'] ?? '';
+                            final isSelected =
+                                materiasSelecionadas.contains(materiaNome);
+
+                            return CheckboxListTile(
+                              title: Text(materiaNome),
+                              value: isSelected,
+                              onChanged: (bool? value) {
+                                setStateDialog(() {
+                                  if (value == true) {
+                                    materiasSelecionadas.add(materiaNome);
+                                  } else {
+                                    materiasSelecionadas.remove(materiaNome);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -489,6 +525,7 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                   'email': emailCtrl.text,
                   'perfil': perfil,
                   'ativo': ativo,
+                  'materias': materiasSelecionadas,
                 });
                 if (context.mounted) Navigator.pop(context);
               },

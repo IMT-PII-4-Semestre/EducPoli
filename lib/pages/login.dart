@@ -66,23 +66,7 @@ class _TelaLoginState extends State<TelaLogin> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo compacta
-              _buildLogo(size: 80),
-              const SizedBox(height: 16),
-              const Text(
-                'EducPoli',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      offset: Offset(2, 2),
-                      blurRadius: 4,
-                      color: Colors.black26,
-                    ),
-                  ],
-                ),
-              ),
+              _buildLogo(size: 60),
               const SizedBox(height: 32),
 
               // Card de login
@@ -96,107 +80,79 @@ class _TelaLoginState extends State<TelaLogin> {
 
   // Layout para WEB
   Widget _buildWebLayout() {
-    return Row(
-      children: [
-        // Lado esquerdo - Logo
-        Expanded(
-          flex: 1,
-          child: Container(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildLogo(size: 120),
-                const SizedBox(height: 20),
-                const Text(
-                  'EducPoli',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(2, 2),
-                        blurRadius: 4,
-                        color: Colors.black26,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildLogo(size: 80),
+            const SizedBox(height: 48),
+            _buildLoginCard(maxWidth: 400),
+          ],
         ),
-
-        // Lado direito - Formulário
-        Expanded(
-          flex: 1,
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(40),
-              child: _buildLoginCard(maxWidth: 400),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   // Widget do Logo (reutilizável)
   Widget _buildLogo({required double size}) {
     return Container(
-      width: size * 1.8,
-      height: size * 1.8,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+      width: size * 2,
+      height: size * 2,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Cubo 3D com efeito de profundidade
+          // Sombra traseira (parte de trás do cubo 3D)
           Positioned(
-            top: size * 0.15,
-            left: size * 0.15,
-            child: Container(
-              width: size * 1.3,
-              height: size * 1.3,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          // Parte central do cubo
-          Positioned(
-            top: size * 0.075,
-            left: size * 0.075,
-            child: Container(
-              width: size * 1.3,
-              height: size * 1.3,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          // Parte frontal do cubo
-          Container(
-            width: size * 1.3,
-            height: size * 1.3,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.95),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 15,
-                  offset: const Offset(5, 5),
+            top: size * 0.3,
+            left: size * 0.3,
+            child: Transform(
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX(-0.3)
+                ..rotateY(0.3),
+              alignment: Alignment.center,
+              child: Container(
+                width: size * 1.5,
+                height: size * 1.5,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(size * 0.15),
                 ),
-              ],
+              ),
             ),
-            child: Center(
-              child: Icon(
-                Icons.school,
-                size: size * 0.7,
-                color: const Color(0xFF8B4513),
+          ),
+          // Cubo principal
+          Transform(
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..rotateX(-0.2)
+              ..rotateY(0.2),
+            alignment: Alignment.center,
+            child: Container(
+              width: size * 1.5,
+              height: size * 1.5,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.95),
+                borderRadius: BorderRadius.circular(size * 0.15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(8, 8),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.school_rounded,
+                  size: size * 0.9,
+                  color: const Color(0xFF8B4513),
+                ),
               ),
             ),
           ),
@@ -211,18 +167,16 @@ class _TelaLoginState extends State<TelaLogin> {
       elevation: 24,
       shadowColor: Colors.black.withOpacity(0.4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      color: Colors.transparent,
       child: Container(
         width: maxWidth,
         constraints: BoxConstraints(maxWidth: maxWidth),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white.withOpacity(0.95),
-              Colors.white.withOpacity(0.85),
-            ],
+          color: Colors.white.withOpacity(0.15),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1.5,
           ),
         ),
         padding: const EdgeInsets.all(40),
@@ -236,8 +190,15 @@ class _TelaLoginState extends State<TelaLogin> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A1A),
+                  color: Colors.white,
                   letterSpacing: 0.5,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(1, 1),
+                      blurRadius: 3,
+                      color: Colors.black26,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 40),
@@ -295,7 +256,14 @@ class _TelaLoginState extends State<TelaLogin> {
                     style: TextStyle(
                       color: Color(0xFF1E90FF),
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(0, 0),
+                          blurRadius: 2,
+                          color: Colors.black26,
+                        ),
+                      ],
                     ),
                   ),
                 ),
