@@ -4,13 +4,13 @@ import '../../widgets/menu_lateral.dart';
 /// Configuração centralizada dos menus por tipo de usuário
 class MenuConfig {
   /// Cor principal do Aluno
-  static const Color corAluno = Color(0xFF7DD3FC);
+  static const Color corAluno = Color(0xCC1FB4C3);
 
   /// Cor principal do Professor
-  static const Color corProfessor = Color(0xFFFF9500);
+  static const Color corProfessor = Color(0xCCFAA41F);
 
   /// Cor principal do Diretor
-  static const Color corDiretor = Color(0xFFE74C3C);
+  static const Color corDiretor = Color(0xCCFF2828);
 
   /// Menu do Aluno
   static const List<ItemMenu> menuAluno = [

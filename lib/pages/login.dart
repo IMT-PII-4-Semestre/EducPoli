@@ -277,12 +277,12 @@ class _TelaLoginState extends State<TelaLogin> {
                 child: ElevatedButton(
                   onPressed: _carregando ? null : _fazerLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE91E63),
+                    backgroundColor: const Color(0xFFFF2828),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor:
-                        const Color(0xFFE91E63).withOpacity(0.6),
+                        const Color(0xFFFF2828).withOpacity(0.6),
                     elevation: 4,
-                    shadowColor: const Color(0xFFE91E63).withOpacity(0.5),
+                    shadowColor: const Color(0xFFFF2828).withOpacity(0.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
