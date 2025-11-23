@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/campo_texto.dart';
 import '../services/autenticacao.dart';
 import '../models/usuarios.dart';
+import 'dart:math' as math; // <-- adicionado
 
 class TelaLogin extends StatefulWidget {
   const TelaLogin({super.key});
@@ -24,18 +25,17 @@ class _TelaLoginState extends State<TelaLogin> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFB8860B), // Dourado
-              Color(0xFFCD853F), // Sandy brown
-              Color(0xFF8B4513), // Saddle brown
-              Color(0xFF2F4F4F), // Dark slate gray
-              Color(0xFF1E90FF), // Azul mais vibrante
+        decoration: BoxDecoration(
+          gradient: SweepGradient(
+            colors: const [
+              Color(0xCCFAA41F), // Amarelo/Ouro
+              Color(0xCCFF2828), // Borgonha/Magenta
+              Color(0xCC1FB4C3), // Ciano/Verde Água
+              Color(0xCCFAA41F), // volta ao amarelo para fechar o círculo
             ],
-            stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+            startAngle: 0.0,
+            endAngle: 2 * math.pi,
+            center: const Alignment(-0.05, -0.05),
           ),
         ),
         child: LayoutBuilder(
@@ -137,7 +137,7 @@ class _TelaLoginState extends State<TelaLogin> {
               width: size * 1.5,
               height: size * 1.5,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.95),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(size * 0.15),
                 boxShadow: [
                   BoxShadow(
@@ -151,7 +151,7 @@ class _TelaLoginState extends State<TelaLogin> {
                 child: Icon(
                   Icons.school_rounded,
                   size: size * 0.9,
-                  color: const Color(0xFF8B4513),
+                  color: const Color(0xCCFF2828),
                 ),
               ),
             ),
@@ -173,7 +173,7 @@ class _TelaLoginState extends State<TelaLogin> {
         constraints: BoxConstraints(maxWidth: maxWidth),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white,
           border: Border.all(
             color: Colors.white.withOpacity(0.2),
             width: 1.5,
@@ -190,7 +190,7 @@ class _TelaLoginState extends State<TelaLogin> {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Color.fromARGB(204, 0, 0, 0),
                   letterSpacing: 0.5,
                   shadows: [
                     Shadow(
