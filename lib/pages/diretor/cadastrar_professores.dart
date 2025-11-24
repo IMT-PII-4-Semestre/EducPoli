@@ -20,6 +20,7 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
   final _senhaController = TextEditingController();
   bool _carregando = false;
   Set<String> _materiasSelecionadas = {};
+  Set<String> _turmasSelecionadas = {};
 
   bool _validarCPF(String cpf) {
     cpf = cpf.replaceAll(RegExp(r'[^\d]'), '');
@@ -269,6 +270,104 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
           ),
           const SizedBox(height: 16),
 
+          // Turmas
+          const Text(
+            'Turmas em que leciona *',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+            ),
+            child: _turmasSelecionadas.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: Text(
+                      'Selecione pelo menos uma turma',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _turmasSelecionadas.map((turma) {
+                        return Chip(
+                          label: Text(turma),
+                          onDeleted: () {
+                            setState(() {
+                              _turmasSelecionadas.remove(turma);
+                            });
+                          },
+                          backgroundColor:
+                              MenuConfig.corDiretor.withOpacity(0.1),
+                          deleteIconColor: MenuConfig.corDiretor,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 150,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('turmas')
+                  .where('ativa', isEqualTo: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Erro: ${snapshot.error}'));
+                }
+
+                final turmas = snapshot.data?.docs ?? [];
+
+                if (turmas.isEmpty) {
+                  return const Center(
+                    child: Text('Nenhuma turma disponível'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: turmas.length,
+                  itemBuilder: (context, index) {
+                    final turmaData =
+                        turmas[index].data() as Map<String, dynamic>;
+                    final turmaNome = turmaData['nome'] ?? '';
+                    final selecionado = _turmasSelecionadas.contains(turmaNome);
+                    return CheckboxListTile(
+                      title: Text(turmaNome),
+                      value: selecionado,
+                      onChanged: (valor) {
+                        setState(() {
+                          if (valor == true) {
+                            _turmasSelecionadas.add(turmaNome);
+                          } else {
+                            _turmasSelecionadas.remove(turmaNome);
+                          }
+                        });
+                      },
+                      activeColor: MenuConfig.corDiretor,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Senha
           TextFormField(
             controller: _senhaController,
@@ -350,6 +449,16 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
       return;
     }
 
+    if (_turmasSelecionadas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecione pelo menos uma turma'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() => _carregando = true);
 
     try {
@@ -368,10 +477,10 @@ class _CadastrarProfessorState extends State<CadastrarProfessor> {
         'nome': _nomeController.text.trim(),
         'cpf': _cpfController.text.trim(),
         'materias': _materiasSelecionadas.toList(),
+        'turmas': _turmasSelecionadas.toList(),
         'tipo': 'professor',
         'ativo': true,
         'criadoEm': DateTime.now().toIso8601String(),
-        'turmas': [],
       });
 
       if (mounted) {

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/dialog_adicionar_material.dart';
 
 // DESIGN PROFESSOR
 const Color _primaryOrange = Color(0xFFFF9500);
 const Color _contentRowColor = Color(0xFFF5F5F5);
 
-class DetalhesMateriaProfessor extends StatelessWidget {
+class DetalhesMateriaProfessor extends StatefulWidget {
   final String materiaId;
   final String nomeMateria;
 
@@ -16,6 +17,49 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     required this.materiaId,
     required this.nomeMateria,
   });
+
+  @override
+  State<DetalhesMateriaProfessor> createState() =>
+      _DetalhesMateriaProfessorState();
+}
+
+class _DetalhesMateriaProfessorState extends State<DetalhesMateriaProfessor> {
+  String? _turmaSelecionada;
+  List<String> _turmasDisponiveis = [];
+  bool _carregandoTurmas = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarTurmasProfessor();
+  }
+
+  Future<void> _carregarTurmasProfessor() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final doc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final turmas = List<String>.from(data['turmas'] ?? []);
+        setState(() {
+          _turmasDisponiveis = turmas;
+          if (turmas.isNotEmpty) {
+            _turmaSelecionada = turmas.first;
+          }
+          _carregandoTurmas = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar turmas: $e');
+      setState(() => _carregandoTurmas = false);
+    }
+  }
 
   IconData _getIconForType(String tipo) {
     switch (tipo) {
@@ -36,7 +80,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     try {
       final materialDoc = await FirebaseFirestore.instance
           .collection('materias')
-          .doc(materiaId)
+          .doc(widget.materiaId)
           .collection('aulas')
           .doc(aulaId)
           .collection('materiais')
@@ -80,7 +124,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      // APP BAR LARANJA COM BOTÃO VOLTAR
+      // APP BAR LARANJA COM BOT�O VOLTAR
       appBar: AppBar(
         backgroundColor: _primaryOrange,
         elevation: 0,
@@ -91,7 +135,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          nomeMateria,
+          widget.nomeMateria,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -102,64 +146,142 @@ class DetalhesMateriaProfessor extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
 
-      // CONTEÚDO OCUPA A TELA TODA (Sem Sidebar nesta tela interna)
+      // CONTE�DO OCUPA A TELA TODA (Sem Sidebar nesta tela interna)
       body: _buildMateriaContent(context),
     );
   }
 
   Widget _buildMateriaContent(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('materias')
-          .doc(materiaId)
-          .collection('aulas')
-          .orderBy('ordem')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError)
-          return const Center(child: Text('Erro ao carregar aulas.'));
-        if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(child: CircularProgressIndicator());
+    if (_carregandoTurmas) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        final aulas = snapshot.data?.docs ?? [];
+    if (_turmasDisponiveis.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.school_outlined, size: 80, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Você não possui turmas vinculadas',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0), // Padding
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        // Filtro de Turma
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.grey[50],
+          child: Row(
             children: [
-              ...aulas.map((aulaDoc) {
-                final aulaData = aulaDoc.data() as Map<String, dynamic>;
-                final aulaId = aulaDoc.id;
-                final titulo = aulaData['titulo'] ?? 'Aula Sem Título';
-
-                return _buildAulaSection(context, titulo, aulaId);
-              }).toList(),
-
-              const SizedBox(height: 40),
-
-              // Botão "Nova Seção" Centralizado e Estilizado
-              Center(
-                child: SizedBox(
-                  width: 200,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _mostrarDialogAdicionarAula(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('NOVA SEÇÃO'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _primaryOrange,
-                      side: const BorderSide(color: _primaryOrange),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+              const Text(
+                'Turma:',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _turmaSelecionada,
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
+                  items: _turmasDisponiveis.map((turma) {
+                    return DropdownMenuItem(
+                      value: turma,
+                      child: Text(turma),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _turmaSelecionada = value);
+                  },
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+
+        // Conte�do das Aulas
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('materias')
+                .doc(widget.materiaId)
+                .collection('aulas')
+                .where('turma', isEqualTo: _turmaSelecionada)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                debugPrint('Erro no StreamBuilder: ${snapshot.error}');
+                return const Center(child: Text('Erro ao carregar aulas.'));
+              }
+              if (snapshot.connectionState == ConnectionState.waiting)
+                return const Center(child: CircularProgressIndicator());
+
+              var aulas = snapshot.data?.docs ?? [];
+              // Ordenar manualmente por ordem
+              aulas.sort((a, b) {
+                final ordemA = (a.data() as Map<String, dynamic>)['ordem'] ?? 0;
+                final ordemB = (b.data() as Map<String, dynamic>)['ordem'] ?? 0;
+                return ordemA.compareTo(ordemB);
+              });
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...aulas.map((aulaDoc) {
+                      final aulaData = aulaDoc.data() as Map<String, dynamic>;
+                      final aulaId = aulaDoc.id;
+                      final titulo = aulaData['titulo'] ?? 'Aula Sem T�tulo';
+
+                      return _buildAulaSection(context, titulo, aulaId);
+                    }).toList(),
+
+                    const SizedBox(height: 40),
+
+                    // Bot�o "Nova Se��o" Centralizado e Estilizado
+                    Center(
+                      child: SizedBox(
+                        width: 200,
+                        height: 50,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _mostrarDialogAdicionarAula(context),
+                          icon: const Icon(Icons.add),
+                          label: const Text('NOVA SEÇÃO'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _primaryOrange,
+                            side: const BorderSide(color: _primaryOrange),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -169,7 +291,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER DA SEÇÃO
+          // HEADER DA SE��O
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -192,7 +314,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
                     style:
                         TextButton.styleFrom(foregroundColor: _primaryOrange),
                   ),
-                  // BOTÃO EDITAR SEÇÃO
+                  // BOT�O EDITAR SE��O
                   IconButton(
                     icon: Icon(Icons.edit,
                         size: 20, color: Colors.grey[700]), // Cor neutra
@@ -232,14 +354,14 @@ class DetalhesMateriaProfessor extends StatelessWidget {
               ),
             ],
           ),
-          const Divider(), // Linha divisória
+          const Divider(), // Linha divis�ria
           const SizedBox(height: 8),
 
           // LISTA DE MATERIAIS DA SEÇÃO
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('materias')
-                .doc(materiaId)
+                .doc(widget.materiaId)
                 .collection('aulas')
                 .doc(aulaId)
                 .collection('materiais')
@@ -307,13 +429,13 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     );
   }
 
-  // DIALOGS DE EDIÇÃO/ADIÇÃO
+  // DIALOGS DE EDI��O/ADI��O
 
   void _mostrarDialogAdicionarMaterial(BuildContext context, String aulaId) {
     showDialog(
       context: context,
       builder: (context) => DialogAdicionarMaterial(
-        materiaId: materiaId,
+        materiaId: widget.materiaId,
         aulaId: aulaId,
         corPrincipal: _primaryOrange,
       ),
@@ -353,7 +475,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     try {
       await FirebaseFirestore.instance
           .collection('materias')
-          .doc(materiaId)
+          .doc(widget.materiaId)
           .collection('aulas')
           .doc(aulaId)
           .collection('materiais')
@@ -368,16 +490,30 @@ class DetalhesMateriaProfessor extends StatelessWidget {
       BuildContext context, String aulaId, String materialId) async {
     final materialDoc = await FirebaseFirestore.instance
         .collection('materias')
-        .doc(materiaId)
+        .doc(widget.materiaId)
         .collection('aulas')
         .doc(aulaId)
         .collection('materiais')
         .doc(materialId)
         .get();
 
-    final nomeController = TextEditingController(text: materialDoc['nome']);
-    final urlController = TextEditingController(text: materialDoc['url']);
-    String? tipoSelecionado = materialDoc['tipo'];
+    if (!materialDoc.exists) return;
+
+    final data = materialDoc.data();
+    if (data == null) return;
+
+    final nomeController = TextEditingController(text: data['nome'] ?? '');
+    final urlController = TextEditingController(text: data['url'] ?? '');
+    
+    // Validar e normalizar o tipo
+    String tipoSelecionado = data['tipo'] ?? 'documento';
+    if (!['documento', 'link', 'pasta', 'arquivo'].contains(tipoSelecionado)) {
+      tipoSelecionado = 'documento';
+    }
+    // Normalizar 'arquivo' para 'documento'
+    if (tipoSelecionado == 'arquivo') {
+      tipoSelecionado = 'documento';
+    }
 
     showDialog(
       context: context,
@@ -408,7 +544,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
                             value: 'link', child: Text('Link/URL')),
                         DropdownMenuItem(value: 'pasta', child: Text('Pasta')),
                       ],
-                      onChanged: (v) => setState(() => tipoSelecionado = v),
+                      onChanged: (v) => setState(() => tipoSelecionado = v!),
                     ),
                     const SizedBox(height: 15),
                     if (tipoSelecionado != 'pasta')
@@ -426,18 +562,17 @@ class DetalhesMateriaProfessor extends StatelessWidget {
                     child: const Text('Cancelar')),
                 ElevatedButton(
                   onPressed: () async {
-                    if (nomeController.text.isNotEmpty &&
-                        tipoSelecionado != null) {
+                    if (nomeController.text.isNotEmpty) {
                       await FirebaseFirestore.instance
                           .collection('materias')
-                          .doc(materiaId)
+                          .doc(widget.materiaId)
                           .collection('aulas')
                           .doc(aulaId)
                           .collection('materiais')
                           .doc(materialId)
                           .update({
                         'nome': nomeController.text.trim(),
-                        'tipo': tipoSelecionado!,
+                        'tipo': tipoSelecionado,
                         'url': tipoSelecionado != 'pasta' &&
                                 urlController.text.isNotEmpty
                             ? urlController.text.trim()
@@ -460,7 +595,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
     );
   }
 
-  // Lógica de Aulas (Seções)
+  // L�gica de Aulas (Se��es)
 
   Future<void> _excluirAula(
       BuildContext context, String aulaId, String aulaTitulo) async {
@@ -468,7 +603,7 @@ class DetalhesMateriaProfessor extends StatelessWidget {
       // Excluir todos os materiais dentro da aula primeiro
       final materiaisSnapshot = await FirebaseFirestore.instance
           .collection('materias')
-          .doc(materiaId)
+          .doc(widget.materiaId)
           .collection('aulas')
           .doc(aulaId)
           .collection('materiais')
@@ -481,13 +616,13 @@ class DetalhesMateriaProfessor extends StatelessWidget {
       // Agora exclui a aula em si
       await FirebaseFirestore.instance
           .collection('materias')
-          .doc(materiaId)
+          .doc(widget.materiaId)
           .collection('aulas')
           .doc(aulaId)
           .delete();
 
       if (context.mounted) {
-        Navigator.pop(context); // Fecha o AlertDialog de confirmação
+        Navigator.pop(context); // Fecha o AlertDialog de confirma��o
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(
@@ -505,37 +640,72 @@ class DetalhesMateriaProfessor extends StatelessWidget {
 
   void _mostrarDialogAdicionarAula(BuildContext context) {
     final nomeController = TextEditingController();
+    String? turmaSelecionada;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nova Seção'),
-        content: TextField(
-            controller: nomeController,
-            decoration: const InputDecoration(labelText: 'Título da Seção')),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () async {
-              if (nomeController.text.isNotEmpty) {
-                await FirebaseFirestore.instance
-                    .collection('materias')
-                    .doc(materiaId)
-                    .collection('aulas')
-                    .add({
-                  'titulo': nomeController.text.trim(),
-                  'ordem': DateTime.now()
-                      .millisecondsSinceEpoch, // Garante ordem na exibição
-                });
-                if (context.mounted) Navigator.pop(context);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryOrange),
-            child:
-                const Text('Adicionar', style: TextStyle(color: Colors.white)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Nova Seção'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nomeController,
+                decoration: const InputDecoration(labelText: 'Título da Seção'),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Turma',
+                  border: OutlineInputBorder(),
+                ),
+                value: turmaSelecionada,
+                items: _turmasDisponiveis.map((turma) {
+                  return DropdownMenuItem<String>(
+                    value: turma,
+                    child: Text(turma),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setStateDialog(() => turmaSelecionada = value);
+                },
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                if (nomeController.text.isNotEmpty &&
+                    turmaSelecionada != null) {
+                  await FirebaseFirestore.instance
+                      .collection('materias')
+                      .doc(widget.materiaId)
+                      .collection('aulas')
+                      .add({
+                    'titulo': nomeController.text.trim(),
+                    'turma': turmaSelecionada,
+                    'ordem': DateTime.now().millisecondsSinceEpoch,
+                  });
+                  if (context.mounted) Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Preencha todos os campos'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: _primaryOrange),
+              child: const Text('Adicionar',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -563,13 +733,13 @@ class DetalhesMateriaProfessor extends StatelessWidget {
                   nomeController.text.trim() != tituloAtual) {
                 await FirebaseFirestore.instance
                     .collection('materias')
-                    .doc(materiaId)
+                    .doc(widget.materiaId)
                     .collection('aulas')
                     .doc(aulaId)
                     .update({'titulo': nomeController.text.trim()});
                 if (context.mounted) Navigator.pop(context);
               } else if (context.mounted) {
-                Navigator.pop(context); // Fechar se não houve alteração
+                Navigator.pop(context); // Fechar se n�o houve altera��o
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: _primaryOrange),

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/arquivo_service.dart';
 
 const Color primaryBlue = Color(0xFF7DD3FC);
-
-// Adicionando nossa altura padrão
 const double _kAppBarHeight = 80.0;
 
-class DetalhesMateriaAluno extends StatelessWidget {
+class DetalhesMateriaAluno extends StatefulWidget {
   final String materiaId;
   final String nomeMateria;
 
@@ -18,12 +17,49 @@ class DetalhesMateriaAluno extends StatelessWidget {
     required this.nomeMateria,
   });
 
+  @override
+  State<DetalhesMateriaAluno> createState() => _DetalhesMateriaAlunoState();
+}
+
+class _DetalhesMateriaAlunoState extends State<DetalhesMateriaAluno> {
+  String? _turmaAluno;
+  bool _carregandoTurma = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarTurmaAluno();
+  }
+
+  Future<void> _carregarTurmaAluno() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final doc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _turmaAluno = data['turma'];
+          _carregandoTurma = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar turma: $e');
+      setState(() => _carregandoTurma = false);
+    }
+  }
+
   Future<void> _abrirMaterial(
       BuildContext context, String aulaId, String materialId) async {
     try {
       final materialDoc = await FirebaseFirestore.instance
           .collection('materias')
-          .doc(materiaId)
+          .doc(widget.materiaId)
           .collection('aulas')
           .doc(aulaId)
           .collection('materiais')
@@ -60,68 +96,98 @@ class DetalhesMateriaAluno extends StatelessWidget {
       }
     }
   }
-  // --- FIM DA LÓGICA INTERNA ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- APP BAR ATUALIZADA ---
       appBar: AppBar(
-        toolbarHeight: _kAppBarHeight, // 1. Altura padronizada
+        toolbarHeight: _kAppBarHeight,
         automaticallyImplyLeading: false,
         backgroundColor: primaryBlue,
         elevation: 0,
-
-        // 2. Ícones brancos
         iconTheme: const IconThemeData(color: Colors.white),
-
-        // ÍCONE DE SETA PARA VOLTAR
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back), // Cor herdada do iconTheme
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
-
-        // 2. Título com fonte branca
         title: Text(
-          nomeMateria,
+          widget.nomeMateria,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
-            color: Colors.white, // Cor da letra alterada
+            color: Colors.white,
             fontFamily: 'Inter',
           ),
         ),
         centerTitle: true,
-
-        // 3. Ícone de pessoa removido
         actions: [],
       ),
-
-      // O 'body' permanece exatamente igual, sem alteração na lógica
       body: _buildMateriaContent(context),
     );
   }
 
   Widget _buildMateriaContent(BuildContext context) {
-    // StreamBuilder principal para ler as AULAS da matéria
+    if (_carregandoTurma) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_turmaAluno == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.warning_amber_outlined, size: 80, color: Colors.orange),
+            SizedBox(height: 16),
+            Text(
+              'Você não está vinculado a uma turma',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('materias')
-          .doc(materiaId)
+          .doc(widget.materiaId)
           .collection('aulas')
-          .orderBy('ordem')
+          .where('turma', isEqualTo: _turmaAluno)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          debugPrint('Erro no StreamBuilder: ${snapshot.error}');
           return const Center(child: Text('Erro ao carregar aulas.'));
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final aulas = snapshot.data?.docs ?? [];
+        var aulas = snapshot.data?.docs ?? [];
+        // Ordenar manualmente por ordem
+        aulas.sort((a, b) {
+          final ordemA = (a.data() as Map<String, dynamic>)['ordem'] ?? 0;
+          final ordemB = (b.data() as Map<String, dynamic>)['ordem'] ?? 0;
+          return ordemA.compareTo(ordemB);
+        });
+
+        if (aulas.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.book_outlined, size: 80, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'Nenhuma seção disponível para sua turma',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
@@ -158,12 +224,10 @@ class DetalhesMateriaAluno extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-
-          // StreamBuilder para ler os MATERIAIS de cada aula
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('materias')
-                .doc(materiaId)
+                .doc(widget.materiaId)
                 .collection('aulas')
                 .doc(aulaId)
                 .collection('materiais')
@@ -219,16 +283,14 @@ class DetalhesMateriaAluno extends StatelessWidget {
     String? nomeArquivo,
     int? tamanhoArquivo,
   }) {
-    // Obter emoji apropriado para o tipo de arquivo
     final emoji = nomeArquivo != null
         ? ArquivoService.obterIconePorExtensao(nomeArquivo)
         : (type == 'pasta'
-            ? '📁'
+            ? ''
             : type == 'link'
-                ? '🔗'
-                : '📄');
+                ? ''
+                : '');
 
-    // Formatar tamanho do arquivo se disponível
     final tamanhoFormatado = tamanhoArquivo != null
         ? ArquivoService.formatarTamanho(tamanhoArquivo)
         : '';
@@ -244,7 +306,7 @@ class DetalhesMateriaAluno extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                   content: Text(
-                      'Pasta "$name": Funcionalidade de navegação interna não implementada.')),
+                      'Pasta "$name": Funcionalidade de navegacao interna nao implementada.')),
             );
           }
         },
@@ -253,14 +315,11 @@ class DetalhesMateriaAluno extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              // Emoji do tipo de arquivo
               Text(
                 emoji,
                 style: const TextStyle(fontSize: 24),
               ),
               const SizedBox(width: 12),
-
-              // Nome e tamanho
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,8 +345,6 @@ class DetalhesMateriaAluno extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Ícone de download/abrir
               if (type != 'pasta')
                 Icon(
                   Icons.download,

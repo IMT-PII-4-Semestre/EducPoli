@@ -401,6 +401,8 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
     bool ativo = professor['ativo'] ?? true;
     List<String> materiasSelecionadas =
         List<String>.from(professor['materias'] ?? []);
+    List<String> turmasSelecionadas =
+        List<String>.from(professor['turmas'] ?? []);
 
     showDialog(
       context: context,
@@ -505,6 +507,70 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                       );
                     },
                   ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Turmas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('turmas')
+                        .where('ativa', isEqualTo: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const CircularProgressIndicator();
+                      }
+
+                      final turmas = snapshot.data!.docs;
+
+                      if (turmas.isEmpty) {
+                        return const Text('Nenhuma turma cadastrada');
+                      }
+
+                      return Container(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: turmas.length,
+                          itemBuilder: (context, index) {
+                            final turma =
+                                turmas[index].data() as Map<String, dynamic>;
+                            final turmaNome = turma['nome'] ?? '';
+                            final isSelected =
+                                turmasSelecionadas.contains(turmaNome);
+
+                            return CheckboxListTile(
+                              title: Text(turmaNome),
+                              value: isSelected,
+                              onChanged: (bool? value) {
+                                setStateDialog(() {
+                                  if (value == true) {
+                                    turmasSelecionadas.add(turmaNome);
+                                  } else {
+                                    turmasSelecionadas.remove(turmaNome);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -526,6 +592,7 @@ class _ProfessoresDiretorState extends State<ProfessoresDiretor> {
                   'perfil': perfil,
                   'ativo': ativo,
                   'materias': materiasSelecionadas,
+                  'turmas': turmasSelecionadas,
                 });
                 if (context.mounted) Navigator.pop(context);
               },
