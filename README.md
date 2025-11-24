@@ -22,6 +22,7 @@ O **EducPoli** é uma plataforma completa para gestão escolar, focada no **Sist
 
 - **Cauê de Oliveira Almiron** - RA: 24.01734-5
 - **Carolina Mitsuoka Emoto** - RA: 22.00086-0
+- **Fábio Tofanello** - RA: 24.01806-6
 - **Giovanna Dias da Silva** - RA: 24.01797-3
 - **Murilo Kaspar de Andrade** - RA: 24.01178-9
 - **Raissa Mantovani Andrade Duarte** - RA: 24.00096-5
