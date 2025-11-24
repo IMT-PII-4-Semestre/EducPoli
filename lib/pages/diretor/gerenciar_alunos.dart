@@ -453,49 +453,51 @@ class _AlunosDiretorState extends State<AlunosDiretor> {
           title: const Text('Editar Aluno'),
           content: SizedBox(
             width: 500,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nomeCtrl,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: raCtrl,
-                  decoration: const InputDecoration(labelText: 'RA'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailCtrl,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 12),
-                StreamBuilder<List<Turma>>(
-                  stream: _turmaService.buscarTurmasAtivas(),
-                  builder: (context, snapshot) {
-                    List<String> turmas = ['Selecione'];
-                    if (snapshot.hasData) {
-                      turmas.addAll(snapshot.data!.map((t) => t.nome));
-                    }
-                    return DropdownButtonFormField<String>(
-                      value: turma,
-                      decoration: const InputDecoration(labelText: 'Turma'),
-                      items: turmas
-                          .map(
-                              (t) => DropdownMenuItem(value: t, child: Text(t)))
-                          .toList(),
-                      onChanged: (v) => setStateDialog(() => turma = v!),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  title: const Text('Ativo'),
-                  value: ativo,
-                  onChanged: (v) => setStateDialog(() => ativo = v),
-                ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nomeCtrl,
+                    decoration: const InputDecoration(labelText: 'Nome'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: raCtrl,
+                    decoration: const InputDecoration(labelText: 'RA'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                  ),
+                  const SizedBox(height: 12),
+                  StreamBuilder<List<Turma>>(
+                    stream: _turmaService.buscarTurmasAtivas(),
+                    builder: (context, snapshot) {
+                      List<String> turmas = ['Selecione'];
+                      if (snapshot.hasData) {
+                        turmas.addAll(snapshot.data!.map((t) => t.nome));
+                      }
+                      return DropdownButtonFormField<String>(
+                        value: turma,
+                        decoration: const InputDecoration(labelText: 'Turma'),
+                        items: turmas
+                            .map(
+                                (t) => DropdownMenuItem(value: t, child: Text(t)))
+                            .toList(),
+                        onChanged: (v) => setStateDialog(() => turma = v!),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: const Text('Ativo'),
+                    value: ativo,
+                    onChanged: (v) => setStateDialog(() => ativo = v),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [

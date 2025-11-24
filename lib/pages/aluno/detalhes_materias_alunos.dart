@@ -80,18 +80,36 @@ class _DetalhesMateriaAlunoState extends State<DetalhesMateriaAluno> {
         return;
       }
 
+      // Tentar abrir a URL
       final uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
+      
+      try {
+        // Tenta lançar a URL no navegador ou app externo
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (!launched && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o arquivo. Tente novamente.'),
+            ),
+          );
+        }
+      } catch (e) {
         if (context.mounted) {
-          throw 'Não foi possível abrir o link: $url.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao abrir: ${e.toString()}'),
+            ),
+          );
         }
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao abrir material: ${e.toString()}')),
+          SnackBar(content: Text('Erro ao carregar material: ${e.toString()}')),
         );
       }
     }

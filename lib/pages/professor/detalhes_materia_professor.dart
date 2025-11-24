@@ -101,19 +101,36 @@ class _DetalhesMateriaProfessorState extends State<DetalhesMateriaProfessor> {
         return;
       }
 
+      // Tentar abrir a URL
       final uri = Uri.parse(url);
-
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
+      
+      try {
+        // Tenta lançar a URL no navegador ou app externo
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (!launched && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível abrir o arquivo. Tente novamente.'),
+            ),
+          );
+        }
+      } catch (e) {
         if (context.mounted) {
-          throw 'Não foi possível abrir o link.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao abrir: ${e.toString()}'),
+            ),
+          );
         }
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao abrir material: ${e.toString()}')),
+          SnackBar(content: Text('Erro ao carregar material: ${e.toString()}')),
         );
       }
     }
@@ -640,72 +657,51 @@ class _DetalhesMateriaProfessorState extends State<DetalhesMateriaProfessor> {
 
   void _mostrarDialogAdicionarAula(BuildContext context) {
     final nomeController = TextEditingController();
-    String? turmaSelecionada;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: const Text('Nova Seção'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nomeController,
-                decoration: const InputDecoration(labelText: 'Título da Seção'),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Turma',
-                  border: OutlineInputBorder(),
-                ),
-                value: turmaSelecionada,
-                items: _turmasDisponiveis.map((turma) {
-                  return DropdownMenuItem<String>(
-                    value: turma,
-                    child: Text(turma),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setStateDialog(() => turmaSelecionada = value);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar')),
-            ElevatedButton(
-              onPressed: () async {
-                if (nomeController.text.isNotEmpty &&
-                    turmaSelecionada != null) {
-                  await FirebaseFirestore.instance
-                      .collection('materias')
-                      .doc(widget.materiaId)
-                      .collection('aulas')
-                      .add({
-                    'titulo': nomeController.text.trim(),
-                    'turma': turmaSelecionada,
-                    'ordem': DateTime.now().millisecondsSinceEpoch,
-                  });
-                  if (context.mounted) Navigator.pop(context);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Preencha todos os campos'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: _primaryOrange),
-              child: const Text('Adicionar',
-                  style: TextStyle(color: Colors.white)),
+      builder: (context) => AlertDialog(
+        title: const Text('Nova Seção'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nomeController,
+              decoration: const InputDecoration(labelText: 'Título da Seção'),
             ),
           ],
         ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nomeController.text.isNotEmpty) {
+                await FirebaseFirestore.instance
+                    .collection('materias')
+                    .doc(widget.materiaId)
+                    .collection('aulas')
+                    .add({
+                  'titulo': nomeController.text.trim(),
+                  'turma': _turmaSelecionada,
+                  'ordem': DateTime.now().millisecondsSinceEpoch,
+                });
+                if (context.mounted) Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Preencha o título da seção'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _primaryOrange),
+            child: const Text('Adicionar',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
